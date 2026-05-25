@@ -61,6 +61,7 @@ export function SearchView({
       <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
         {FILTER_IDS.map((id) => {
           const isActive = activeCategory === id;
+          
 
           return (
             <button
