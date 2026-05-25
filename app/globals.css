@@ -1,0 +1,12 @@
+@import "tailwindcss";
+
+@theme {
+  /* Set Josefin Sans as the default */
+  --font-sans: var(--font-josefin), sans-serif;
+  
+  /* Create custom arabic font class */
+  --font-arabic: var(--font-estedad), sans-serif;
+  
+  /* Your custom soft, airy shadow from the design guidelines */
+  --shadow-soft-airy: 0px 20px 40px rgba(0, 0, 0, 0.08);
+}
