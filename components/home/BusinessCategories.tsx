@@ -2,32 +2,35 @@
 
 import { Briefcase, Monitor, Store, type LucideIcon } from "lucide-react";
 import type { ActiveCategory, BusinessType } from "@/types/category";
+import type { Translations } from "@/types/i18n";
 
 interface Category {
   id: BusinessType;
-  label: string;
   icon: LucideIcon;
 }
 
 const CATEGORIES: Category[] = [
-  { id: "digital", label: "Digital", icon: Monitor },
-  { id: "physical", label: "Physical", icon: Store },
-  { id: "services", label: "Services", icon: Briefcase },
+  { id: "digital", icon: Monitor },
+  { id: "physical", icon: Store },
+  { id: "services", icon: Briefcase },
 ];
 
 interface BusinessCategoriesProps {
   activeCategory: ActiveCategory;
   onCategoryChange: (category: BusinessType) => void;
+  labels: Pick<Translations, "digital" | "physical" | "services">;
 }
 
 export function BusinessCategories({
   activeCategory,
   onCategoryChange,
+  labels,
 }: BusinessCategoriesProps) {
   return (
     <div className="mt-8 flex items-start justify-between gap-4 px-1">
-      {CATEGORIES.map(({ id, label, icon: Icon }) => {
+      {CATEGORIES.map(({ id, icon: Icon }) => {
         const isActive = activeCategory === id;
+        const label = labels[id];
 
         return (
           <button
@@ -35,7 +38,7 @@ export function BusinessCategories({
             type="button"
             onClick={() => onCategoryChange(id)}
             className="group flex flex-1 flex-col items-center gap-3 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F9F9F9]"
-            aria-label={`Browse ${label} businesses`}
+            aria-label={label}
             aria-pressed={isActive}
           >
             <span

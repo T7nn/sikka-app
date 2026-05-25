@@ -4,13 +4,17 @@ import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
 import { BusinessCard } from "@/components/search/BusinessCard";
 import type { BusinessRecord } from "@/types/business";
-import { CATEGORY_FILTERS, type ActiveCategory } from "@/types/category";
+import type { ActiveCategory } from "@/types/category";
+import { getCategoryLabel, type Translations } from "@/types/i18n";
+
+const FILTER_IDS: ActiveCategory[] = ["all", "digital", "physical", "services"];
 
 interface SearchViewProps {
   businesses: BusinessRecord[];
   activeCategory: ActiveCategory;
   onCategoryChange: (category: ActiveCategory) => void;
   onBusinessSelect: (business: BusinessRecord) => void;
+  labels: Translations;
 }
 
 export function SearchView({
@@ -18,6 +22,7 @@ export function SearchView({
   activeCategory,
   onCategoryChange,
   onBusinessSelect,
+  labels,
 }: SearchViewProps) {
   const [query, setQuery] = useState("");
 
@@ -40,7 +45,7 @@ export function SearchView({
         <Search
           size={18}
           strokeWidth={1.75}
-          className="pointer-events-none absolute left-5 top-1/2 -translate-y-1/2 text-[#222222]/40"
+          className="pointer-events-none absolute start-5 top-1/2 -translate-y-1/2 text-[#222222]/40"
           aria-hidden
         />
         <input
@@ -48,13 +53,13 @@ export function SearchView({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search local businesses…"
-          className="w-full rounded-full bg-white py-4 pl-12 pr-6 font-sans text-sm font-medium text-[#222222] shadow-soft-airy placeholder:text-[#222222]/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/15"
+          className="w-full rounded-full bg-white py-4 ps-12 pe-6 font-sans text-sm font-medium text-[#222222] shadow-soft-airy placeholder:text-[#222222]/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/15"
           aria-label="Search local businesses"
         />
       </div>
 
       <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-        {CATEGORY_FILTERS.map(({ id, label }) => {
+        {FILTER_IDS.map((id) => {
           const isActive = activeCategory === id;
 
           return (
@@ -69,7 +74,7 @@ export function SearchView({
                   : "bg-white text-[#222222]/60 shadow-soft-airy"
               }`}
             >
-              {label}
+              {getCategoryLabel(id, labels)}
             </button>
           );
         })}

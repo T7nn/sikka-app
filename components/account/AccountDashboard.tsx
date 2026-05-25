@@ -16,6 +16,7 @@ import type { BusinessType } from "@/types/businessForm";
 import type { BusinessRecord } from "@/types/business";
 import type { CurrentUser, UserRole } from "@/types/user";
 import { USER_ROLES } from "@/types/user";
+import type { Translations } from "@/types/i18n";
 import type { FormEvent } from "react";
 
 interface MenuItem {
@@ -46,6 +47,7 @@ function formatTypeLabel(type: string): string {
 interface AccountDashboardProps {
   user: CurrentUser;
   businesses: BusinessRecord[];
+  labels: Translations;
   onSignOut?: () => void;
   onRoleChange: (role: UserRole) => void;
   onDeleteBusiness: (id: string) => Promise<void>;
@@ -67,6 +69,7 @@ interface AccountDashboardProps {
 export function AccountDashboard({
   user,
   businesses,
+  labels,
   onSignOut,
   onRoleChange,
   onDeleteBusiness,
@@ -104,7 +107,7 @@ export function AccountDashboard({
             onClick={onSignOut}
             className="rounded-full bg-white px-5 py-2 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/60 shadow-soft-airy transition-colors hover:bg-[#222222] hover:text-white"
           >
-            Sign Out
+            {labels.signOut}
           </button>
         </div>
       )}
@@ -228,7 +231,7 @@ export function AccountDashboard({
               <LayoutDashboard size={20} strokeWidth={1.5} className="text-white/80" />
             </span>
             <div>
-              <h2 className="font-sans text-base font-semibold text-white">Business Dashboard</h2>
+              <h2 className="font-sans text-base font-semibold text-white">{labels.businessDashboard}</h2>
               <p className="mt-2 text-sm leading-relaxed text-white/55">
                 Add a new business to the Sikka map and directory.
               </p>
@@ -318,7 +321,7 @@ export function AccountDashboard({
               disabled={isSubmitting}
               className="mt-2 w-full rounded-full bg-white py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-[#222222] transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {isSubmitting ? "Publishing…" : "Publish business"}
+              {isSubmitting ? "Publishing…" : labels.publishBusiness}
             </button>
           </form>
 

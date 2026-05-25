@@ -87,7 +87,7 @@ export function ExpandableMapWidget({
           type="button"
           aria-label="Expand map"
           onClick={expand}
-          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95"
+          className="absolute end-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95"
         >
           <Maximize2 size={16} strokeWidth={1.75} className="text-[#222222]/70" />
         </button>
@@ -98,7 +98,7 @@ export function ExpandableMapWidget({
           type="button"
           aria-label="Shrink map"
           onClick={collapse}
-          className="absolute right-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95"
+          className="absolute end-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95"
         >
           <Minimize2 size={16} strokeWidth={1.75} className="text-[#222222]/70" />
         </button>

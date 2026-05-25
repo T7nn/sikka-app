@@ -1,8 +1,10 @@
 "use client";
 
 import type { FormEvent } from "react";
+import type { Translations } from "@/types/i18n";
 
 interface AuthGatewayProps {
+  labels: Translations;
   email: string;
   setEmail: (value: string) => void;
   password: string;
@@ -15,6 +17,7 @@ interface AuthGatewayProps {
 }
 
 export function AuthGateway({
+  labels,
   email,
   setEmail,
   password,
@@ -29,18 +32,16 @@ export function AuthGateway({
     <div className="flex h-full flex-col justify-center py-6">
       <div className="rounded-[32px] bg-white p-8 shadow-soft-airy">
         <h1 className="font-sans text-2xl font-semibold text-[#222222]">
-          {isLoginMode ? "Welcome back" : "Create account"}
+          {isLoginMode ? labels.welcomeBack : labels.createAccountTitle}
         </h1>
         <p className="mt-2 text-sm text-[#222222]/55">
-          {isLoginMode
-            ? "Sign in to manage your orders and profile."
-            : "Join Sikka to discover local businesses."}
+          {isLoginMode ? labels.signInSubtitle : labels.signUpSubtitle}
         </p>
 
         <form onSubmit={onAuth} className="mt-8 flex flex-col gap-5">
           <label className="block">
             <span className="mb-2 block font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/45">
-              Email
+              {labels.email}
             </span>
             <input
               type="email"
@@ -56,7 +57,7 @@ export function AuthGateway({
 
           <label className="block">
             <span className="mb-2 block font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/45">
-              Password
+              {labels.password}
             </span>
             <input
               type="password"
@@ -83,11 +84,11 @@ export function AuthGateway({
           >
             {isLoading
               ? isLoginMode
-                ? "Signing in…"
-                : "Creating account…"
+                ? labels.signingIn
+                : labels.creatingAccount
               : isLoginMode
-                ? "Sign In"
-                : "Create Account"}
+                ? labels.signIn
+                : labels.createAccount}
           </button>
         </form>
 
@@ -97,9 +98,7 @@ export function AuthGateway({
           disabled={isLoading}
           className="mt-5 w-full py-2 font-sans text-xs font-medium text-[#222222]/45 transition-colors hover:text-[#222222]/70 disabled:opacity-50"
         >
-          {isLoginMode
-            ? "Don't have an account? Sign up"
-            : "Already have an account? Sign in"}
+          {isLoginMode ? labels.toggleToSignUp : labels.toggleToSignIn}
         </button>
       </div>
     </div>

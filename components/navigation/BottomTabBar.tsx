@@ -7,22 +7,22 @@ export type TabId = "home" | "search" | "account";
 
 interface TabItem {
   id: TabId;
-  label: string;
   icon: LucideIcon;
 }
 
 const TABS: TabItem[] = [
-  { id: "home", label: "Home", icon: Home },
-  { id: "search", label: "Search", icon: Search },
-  { id: "account", label: "Account", icon: User },
+  { id: "home", icon: Home },
+  { id: "search", icon: Search },
+  { id: "account", icon: User },
 ];
 
 interface BottomTabBarProps {
   activeTab: TabId;
   onTabChange: (tab: TabId) => void;
+  tabLabels: Record<TabId, string>;
 }
 
-export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
+export function BottomTabBar({ activeTab, onTabChange, tabLabels }: BottomTabBarProps) {
   return (
     <nav
       aria-label="Main navigation"
@@ -32,13 +32,14 @@ export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;
+          const label = tabLabels[tab.id];
 
           return (
             <li key={tab.id} className="flex-1">
               <button
                 type="button"
                 onClick={() => onTabChange(tab.id)}
-                aria-label={tab.label}
+                aria-label={label}
                 aria-current={isActive ? "page" : undefined}
                 className="relative flex w-full flex-col items-center justify-center gap-1 rounded-full px-2 py-2.5"
               >
@@ -64,7 +65,7 @@ export function BottomTabBar({ activeTab, onTabChange }: BottomTabBarProps) {
                     isActive ? "text-white" : "text-[#222222]/40"
                   }`}
                 >
-                  {tab.label}
+                  {label}
                 </span>
               </button>
             </li>

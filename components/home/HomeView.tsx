@@ -7,6 +7,7 @@ import { ExpandableMapWidget } from "@/components/home/ExpandableMapWidget";
 import { OrderTrackingCard } from "@/components/home/OrderTrackingCard";
 import type { BusinessRecord } from "@/types/business";
 import type { ActiveCategory, BusinessType } from "@/types/category";
+import type { Translations } from "@/types/i18n";
 
 interface HomeViewProps {
   businesses: BusinessRecord[];
@@ -16,6 +17,7 @@ interface HomeViewProps {
   isOrderActive: boolean;
   orderBusinessName?: string;
   onDismissOrder: () => void;
+  labels: Translations;
 }
 
 export function HomeView({
@@ -26,6 +28,7 @@ export function HomeView({
   isOrderActive,
   orderBusinessName,
   onDismissOrder,
+  labels,
 }: HomeViewProps) {
   const [mapExpanded, setMapExpanded] = useState(false);
 
@@ -56,6 +59,7 @@ export function HomeView({
             <BusinessCategories
               activeCategory={activeCategory}
               onCategoryChange={onCategoryChange}
+              labels={labels}
             />
 
             {businesses.length === 0 && activeCategory !== "all" && (

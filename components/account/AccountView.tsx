@@ -6,11 +6,13 @@ import { AuthGateway } from "@/components/account/AuthGateway";
 import type { BusinessType } from "@/types/businessForm";
 import type { BusinessRecord } from "@/types/business";
 import type { CurrentUser, UserRole } from "@/types/user";
+import type { Translations } from "@/types/i18n";
 import type { FormEvent } from "react";
 
 interface AccountViewProps {
   currentUser: CurrentUser | null;
   businesses: BusinessRecord[];
+  labels: Translations;
   email: string;
   setEmail: (value: string) => void;
   password: string;
@@ -48,6 +50,7 @@ const AUTH_TRANSITION = {
 export function AccountView({
   currentUser,
   businesses,
+  labels,
   email,
   setEmail,
   password,
@@ -81,6 +84,7 @@ export function AccountView({
           <AccountDashboard
             user={currentUser}
             businesses={businesses}
+            labels={labels}
             onSignOut={onSignOut}
             onRoleChange={onRoleChange}
             onDeleteBusiness={onDeleteBusiness}
@@ -102,6 +106,7 @@ export function AccountView({
       ) : (
         <motion.div key="gateway" {...AUTH_TRANSITION} className="h-full">
           <AuthGateway
+            labels={labels}
             email={email}
             setEmail={setEmail}
             password={password}

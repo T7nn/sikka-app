@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { Globe } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AccountView } from "@/components/account/AccountView";
 import { BusinessDetailSheet } from "@/components/business/BusinessDetailSheet";
@@ -13,15 +14,10 @@ import {
   categoryMatchesFilter,
   type ActiveCategory,
 } from "@/types/category";
+import { translations, type Language } from "@/types/i18n";
 import type { CurrentUser } from "@/types/user";
 import { parseUserRole } from "@/types/user";
 import { supabase } from "@/utils/supabase";
-
-const TAB_LABELS: Record<TabId, string> = {
-  home: "Home",
-  search: "Search",
-  account: "Account",
-};
 
 const VIEW_TRANSITION = {
   initial: { opacity: 0, y: 10 },
@@ -31,6 +27,7 @@ const VIEW_TRANSITION = {
 };
 
 export default function HomePage() {
+  const [language, setLanguage] = useState<Language>("en");
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [isOrderActive, setIsOrderActive] = useState(true);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -53,6 +50,19 @@ export default function HomePage() {
   const [submitSuccess, setSubmitSuccess] = useState(false);
 
   const dismissOrder = () => setIsOrderActive(false);
+
+  const t = translations[language];
+
+  const tabLabels: Record<TabId, string> = {
+    home: t.home,
+    search: t.search,
+    account: t.account,
+  };
+
+  useEffect(() => {
+    document.documentElement.dir = language === "ar" ? "rtl" : "ltr";
+    document.documentElement.lang = language;
+  }, [language]);
 
   const fetchBusinesses = useCallback(async () => {
     const { data, error } = await supabase.from("businesses").select("*");
@@ -257,11 +267,25 @@ export default function HomePage() {
   };
 
   return (
-    <div className="flex min-h-dvh flex-col bg-[#F9F9F9] text-[#222222]">
+    <div
+      className={`relative flex min-h-dvh flex-col bg-[#F9F9F9] text-[#222222] ${
+        language === "ar" ? "font-arabic" : ""
+      }`}
+    >
+      <button
+        type="button"
+        onClick={() => setLanguage((prev) => (prev === "en" ? "ar" : "en"))}
+        aria-label={t.languageToggle}
+        className="absolute end-6 top-6 z-50 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/60 shadow-soft-airy transition-colors hover:bg-[#222222] hover:text-white"
+      >
+        <Globe size={15} strokeWidth={1.75} aria-hidden />
+        {language === "en" ? "AR" : "EN"}
+      </button>
+
       <main
         id="main-content"
         className="flex-1 bg-[#F9F9F9] px-6 pb-4 pt-8"
-        aria-label={`${TAB_LABELS[activeTab]} view`}
+        aria-label={`${tabLabels[activeTab]} view`}
       >
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
@@ -274,6 +298,7 @@ export default function HomePage() {
                 isOrderActive={isOrderActive}
                 orderBusinessName={activeOrderBusiness?.name}
                 onDismissOrder={dismissOrder}
+                labels={t}
               />
             </motion.div>
           )}
@@ -285,6 +310,7 @@ export default function HomePage() {
                 activeCategory={activeCategory}
                 onCategoryChange={handleCategoryChange}
                 onBusinessSelect={setSelectedBusiness}
+                labels={t}
               />
             </motion.div>
           )}
@@ -294,6 +320,7 @@ export default function HomePage() {
               <AccountView
                 currentUser={currentUser}
                 businesses={businesses}
+                labels={t}
                 email={email}
                 setEmail={setEmail}
                 password={password}
@@ -331,7 +358,11 @@ export default function HomePage() {
         onPlaceOrder={handlePlaceOrder}
       />
 
-      <BottomTabBar activeTab={activeTab} onTabChange={setActiveTab} />
+      <BottomTabBar
+        activeTab={activeTab}
+        onTabChange={setActiveTab}
+        tabLabels={tabLabels}
+      />
     </div>
   );
 }
