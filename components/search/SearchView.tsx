@@ -45,7 +45,7 @@ export function SearchView({
         <Search
           size={18}
           strokeWidth={1.75}
-          className="pointer-events-none absolute start-5 top-1/2 -translate-y-1/2 text-[#222222]/40"
+          className="pointer-events-none absolute inset-s-5 top-1/2 -translate-y-1/2 text-[#222222]/40"
           aria-hidden
         />
         <input

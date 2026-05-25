@@ -276,7 +276,7 @@ export default function HomePage() {
         type="button"
         onClick={() => setLanguage((prev) => (prev === "en" ? "ar" : "en"))}
         aria-label={t.languageToggle}
-        className="absolute end-6 top-6 z-50 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/60 shadow-soft-airy transition-colors hover:bg-[#222222] hover:text-white"
+        className="absolute inset-e-6 top-6 z-50 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/60 shadow-soft-airy transition-colors hover:bg-[#222222] hover:text-white"
       >
         <Globe size={15} strokeWidth={1.75} aria-hidden />
         {language === "en" ? "AR" : "EN"}

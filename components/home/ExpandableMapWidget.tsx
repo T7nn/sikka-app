@@ -87,7 +87,7 @@ export function ExpandableMapWidget({
           type="button"
           aria-label="Expand map"
           onClick={expand}
-          className="absolute end-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95"
+          className="absolute inset-e-4 top-4 z-10 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95"
         >
           <Maximize2 size={16} strokeWidth={1.75} className="text-[#222222]/70" />
         </button>
