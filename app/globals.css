@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme {
   /* Set Josefin Sans as the default */
   --font-sans: var(--font-josefin), sans-serif;

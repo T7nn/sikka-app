@@ -4,7 +4,6 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useState } from "react";
 import { BusinessCategories } from "@/components/home/BusinessCategories";
 import { ExpandableMapWidget } from "@/components/home/ExpandableMapWidget";
-import { OrderTrackingCard } from "@/components/home/OrderTrackingCard";
 import type { BusinessRecord } from "@/types/business";
 import type { ActiveCategory, BusinessType } from "@/types/category";
 import type { Translations } from "@/types/i18n";
@@ -13,10 +12,9 @@ interface HomeViewProps {
   businesses: BusinessRecord[];
   activeCategory: ActiveCategory;
   onCategoryChange: (category: BusinessType) => void;
-  onBusinessSelect: (business: BusinessRecord) => void;
-  isOrderActive: boolean;
-  orderBusinessName?: string;
-  onDismissOrder: () => void;
+  mapPreviewBusiness: BusinessRecord | null;
+  onMapPinSelect: (business: BusinessRecord) => void;
+  onOpenBusinessDetails: (business: BusinessRecord) => void;
   labels: Translations;
 }
 
@@ -24,10 +22,9 @@ export function HomeView({
   businesses,
   activeCategory,
   onCategoryChange,
-  onBusinessSelect,
-  isOrderActive,
-  orderBusinessName,
-  onDismissOrder,
+  mapPreviewBusiness,
+  onMapPinSelect,
+  onOpenBusinessDetails,
   labels,
 }: HomeViewProps) {
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -36,17 +33,11 @@ export function HomeView({
     <div className="flex h-full flex-col">
       <ExpandableMapWidget
         businesses={businesses}
+        mapPreviewBusiness={mapPreviewBusiness}
+        onMapPinSelect={onMapPinSelect}
+        onViewDetails={onOpenBusinessDetails}
         onExpandedChange={setMapExpanded}
-        onBusinessSelect={onBusinessSelect}
       />
-
-      {!mapExpanded && (
-        <OrderTrackingCard
-          visible={isOrderActive}
-          businessName={orderBusinessName}
-          onDismiss={onDismissOrder}
-        />
-      )}
 
       <AnimatePresence>
         {!mapExpanded && (
@@ -63,8 +54,8 @@ export function HomeView({
             />
 
             {businesses.length === 0 && activeCategory !== "all" && (
-              <div className="mt-6 rounded-[32px] bg-white p-8 text-center shadow-soft-airy">
-                <p className="font-sans text-sm text-[#222222]/45">
+              <div className="mt-6 rounded-[32px] bg-white p-8 text-center shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:text-white dark:shadow-none">
+                <p className="font-sans text-sm text-[#222222]/45 dark:text-white/45">
                   No businesses found in this category yet.
                 </p>
               </div>

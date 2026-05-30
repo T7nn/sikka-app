@@ -24,6 +24,18 @@ export interface Translations {
   toggleToSignUp: string;
   toggleToSignIn: string;
   languageToggle: string;
+  settings: string;
+  closeSettings: string;
+  language: string;
+  theme: string;
+  english: string;
+  arabic: string;
+  lightMode: string;
+  darkMode: string;
+  businessLogo: string;
+  uploadLogoHint: string;
+  uploadingLogo: string;
+  logoReady: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -51,6 +63,18 @@ export const translations: Record<Language, Translations> = {
     toggleToSignUp: "Don't have an account? Sign up",
     toggleToSignIn: "Already have an account? Sign in",
     languageToggle: "Language",
+    settings: "Settings",
+    closeSettings: "Close settings",
+    language: "Language",
+    theme: "Theme",
+    english: "English",
+    arabic: "Arabic",
+    lightMode: "Light",
+    darkMode: "Dark",
+    businessLogo: "Business logo",
+    uploadLogoHint: "Tap to upload a logo image",
+    uploadingLogo: "Uploading logo…",
+    logoReady: "Logo ready",
   },
   ar: {
     home: "الرئيسية",
@@ -76,6 +100,18 @@ export const translations: Record<Language, Translations> = {
     toggleToSignUp: "ليس لديك حساب؟ سجّل الآن",
     toggleToSignIn: "لديك حساب بالفعل؟ سجّل الدخول",
     languageToggle: "اللغة",
+    settings: "الإعدادات",
+    closeSettings: "إغلاق الإعدادات",
+    language: "اللغة",
+    theme: "المظهر",
+    english: "English",
+    arabic: "العربية",
+    lightMode: "فاتح",
+    darkMode: "داكن",
+    businessLogo: "شعار العمل",
+    uploadLogoHint: "اضغط لرفع صورة الشعار",
+    uploadingLogo: "جارٍ رفع الشعار…",
+    logoReady: "الشعار جاهز",
   },
 };
 

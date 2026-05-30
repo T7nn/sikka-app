@@ -1,7 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Globe } from "lucide-react";
+import { SettingsMenu } from "@/components/settings/SettingsMenu";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AccountView } from "@/components/account/AccountView";
 import { BusinessDetailSheet } from "@/components/business/BusinessDetailSheet";
@@ -14,6 +14,7 @@ import {
   categoryMatchesFilter,
   type ActiveCategory,
 } from "@/types/category";
+import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { translations, type Language } from "@/types/i18n";
 import type { CurrentUser } from "@/types/user";
 import { parseUserRole } from "@/types/user";
@@ -29,7 +30,6 @@ const VIEW_TRANSITION = {
 export default function HomePage() {
   const [language, setLanguage] = useState<Language>("en");
   const [activeTab, setActiveTab] = useState<TabId>("home");
-  const [isOrderActive, setIsOrderActive] = useState(true);
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -38,18 +38,23 @@ export default function HomePage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
   const [activeCategory, setActiveCategory] = useState<ActiveCategory>("all");
+  const [mapPreviewBusiness, setMapPreviewBusiness] = useState<BusinessRecord | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
-  const [activeOrderBusiness, setActiveOrderBusiness] = useState<BusinessRecord | null>(null);
 
   const [newName, setNewName] = useState("");
   const [newType, setNewType] = useState<BusinessType>("physical");
   const [newDescription, setNewDescription] = useState("");
-  const [newLat, setNewLat] = useState("");
-  const [newLng, setNewLng] = useState("");
+  const [newGoogleMapsUrl, setNewGoogleMapsUrl] = useState("");
+  const [newInstagramUrl, setNewInstagramUrl] = useState("");
+  const [newWhatsappNumber, setNewWhatsappNumber] = useState("");
+  const [newWebsiteUrl, setNewWebsiteUrl] = useState("");
+  const [logoUrl, setLogoUrl] = useState<string | null>(null);
+  const [logoPreviewUrl, setLogoPreviewUrl] = useState<string | null>(null);
+  const [isUploadingLogo, setIsUploadingLogo] = useState(false);
+  const [isExtractingLocation, setIsExtractingLocation] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [publishError, setPublishError] = useState<string | null>(null);
   const [submitSuccess, setSubmitSuccess] = useState(false);
-
-  const dismissOrder = () => setIsOrderActive(false);
 
   const t = translations[language];
 
@@ -158,13 +163,18 @@ export default function HomePage() {
     handleCategoryChange(category);
   };
 
-  const handlePlaceOrder = () => {
-    if (!selectedBusiness) return;
-
-    setActiveOrderBusiness(selectedBusiness);
+  const handleMapPinSelect = (business: BusinessRecord) => {
+    setMapPreviewBusiness(business);
     setSelectedBusiness(null);
-    setActiveTab("home");
-    setIsOrderActive(true);
+  };
+
+  const handleOpenBusinessDetails = (business: BusinessRecord) => {
+    setSelectedBusiness(business);
+    setMapPreviewBusiness(null);
+  };
+
+  const handleCloseBusinessDetails = () => {
+    setSelectedBusiness(null);
   };
 
   const handleAuth = async (e: FormEvent) => {
@@ -207,39 +217,114 @@ export default function HomePage() {
     setCurrentUser((prev) => (prev ? { ...prev, role } : null));
   };
 
+  const clearLogoSelection = useCallback(() => {
+    setLogoPreviewUrl((prev) => {
+      if (prev) URL.revokeObjectURL(prev);
+      return null;
+    });
+    setLogoUrl(null);
+  }, []);
+
+  const handleLogoSelect = useCallback(
+    async (file: File) => {
+      setPublishError(null);
+      clearLogoSelection();
+
+      setLogoPreviewUrl(URL.createObjectURL(file));
+      setIsUploadingLogo(true);
+
+      const rawExtension = file.name.includes(".")
+        ? file.name.split(".").pop()?.toLowerCase()
+        : "jpg";
+      const allowedExtensions = ["jpg", "jpeg", "png", "webp", "gif"];
+      const extension = allowedExtensions.includes(rawExtension ?? "")
+        ? rawExtension
+        : "jpg";
+      const fileName = `${Date.now()}-${crypto.randomUUID()}.${extension}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from("business_logos")
+        .upload(fileName, file, {
+          cacheControl: "3600",
+          upsert: false,
+          contentType: file.type || undefined,
+        });
+
+      setIsUploadingLogo(false);
+
+      if (uploadError) {
+        setPublishError(uploadError.message);
+        return;
+      }
+
+      const { data } = supabase.storage.from("business_logos").getPublicUrl(fileName);
+      setLogoUrl(data.publicUrl);
+    },
+    [clearLogoSelection],
+  );
+
+  const resetPublishForm = useCallback(() => {
+    clearLogoSelection();
+    setNewName("");
+    setNewType("physical");
+    setNewDescription("");
+    setNewGoogleMapsUrl("");
+    setNewInstagramUrl("");
+    setNewWhatsappNumber("");
+    setNewWebsiteUrl("");
+  }, [clearLogoSelection]);
+
   const handleAddBusiness = async (e: FormEvent) => {
     e.preventDefault();
 
-    const latitude = parseFloat(newLat);
-    const longitude = parseFloat(newLng);
+    if (
+      !newName.trim() ||
+      !newDescription.trim() ||
+      !newGoogleMapsUrl.trim() ||
+      isUploadingLogo
+    ) {
+      return;
+    }
 
-    if (!newName.trim() || !newDescription.trim() || Number.isNaN(latitude) || Number.isNaN(longitude)) {
+    setPublishError(null);
+    setSubmitSuccess(false);
+    setIsExtractingLocation(true);
+
+    const extraction = await extractCoordinatesFromMapsUrl(newGoogleMapsUrl.trim());
+
+    setIsExtractingLocation(false);
+
+    if (!extraction.success) {
+      setPublishError(
+        extraction.error ?? "Could not extract coordinates from this Google Maps link.",
+      );
       return;
     }
 
     setIsSubmitting(true);
-    setSubmitSuccess(false);
 
     const { error } = await supabase.from("businesses").insert({
       name: newName.trim(),
       type: newType,
       description: newDescription.trim(),
-      latitude,
-      longitude,
+      google_maps_url: newGoogleMapsUrl.trim(),
+      latitude: extraction.latitude,
+      longitude: extraction.longitude,
+      instagram_url: newInstagramUrl.trim() || null,
+      whatsapp_number: newWhatsappNumber.trim() || null,
+      website_url: newWebsiteUrl.trim() || null,
+      logo_url: logoUrl,
     });
 
     setIsSubmitting(false);
 
     if (error) {
       console.error("Failed to add business:", error.message);
+      setPublishError(error.message);
       return;
     }
 
-    setNewName("");
-    setNewType("physical");
-    setNewDescription("");
-    setNewLat("");
-    setNewLng("");
+    resetPublishForm();
     setSubmitSuccess(true);
 
     await fetchBusinesses();
@@ -259,8 +344,8 @@ export default function HomePage() {
       setSelectedBusiness(null);
     }
 
-    if (activeOrderBusiness?.id === id) {
-      setActiveOrderBusiness(null);
+    if (mapPreviewBusiness?.id === id) {
+      setMapPreviewBusiness(null);
     }
 
     await fetchBusinesses();
@@ -268,23 +353,19 @@ export default function HomePage() {
 
   return (
     <div
-      className={`relative flex min-h-dvh flex-col bg-[#F9F9F9] text-[#222222] ${
+      className={`relative flex min-h-dvh flex-col bg-white dark:bg-black ${
         language === "ar" ? "font-arabic" : ""
       }`}
     >
-      <button
-        type="button"
-        onClick={() => setLanguage((prev) => (prev === "en" ? "ar" : "en"))}
-        aria-label={t.languageToggle}
-        className="absolute inset-e-6 top-6 z-50 flex items-center gap-2 rounded-full bg-white px-4 py-2.5 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/60 shadow-soft-airy transition-colors hover:bg-[#222222] hover:text-white"
-      >
-        <Globe size={15} strokeWidth={1.75} aria-hidden />
-        {language === "en" ? "AR" : "EN"}
-      </button>
+      <SettingsMenu
+        language={language}
+        onLanguageChange={setLanguage}
+        labels={t}
+      />
 
       <main
         id="main-content"
-        className="flex-1 bg-[#F9F9F9] px-6 pb-4 pt-8"
+        className="flex-1 bg-white px-6 pb-4 pt-8 dark:bg-black"
         aria-label={`${tabLabels[activeTab]} view`}
       >
         <AnimatePresence mode="wait">
@@ -294,10 +375,9 @@ export default function HomePage() {
                 businesses={filteredBusinesses}
                 activeCategory={activeCategory}
                 onCategoryChange={handleHomeCategoryChange}
-                onBusinessSelect={setSelectedBusiness}
-                isOrderActive={isOrderActive}
-                orderBusinessName={activeOrderBusiness?.name}
-                onDismissOrder={dismissOrder}
+                mapPreviewBusiness={mapPreviewBusiness}
+                onMapPinSelect={handleMapPinSelect}
+                onOpenBusinessDetails={handleOpenBusinessDetails}
                 labels={t}
               />
             </motion.div>
@@ -309,7 +389,7 @@ export default function HomePage() {
                 businesses={filteredBusinesses}
                 activeCategory={activeCategory}
                 onCategoryChange={handleCategoryChange}
-                onBusinessSelect={setSelectedBusiness}
+                onBusinessSelect={handleOpenBusinessDetails}
                 labels={t}
               />
             </motion.div>
@@ -339,11 +419,21 @@ export default function HomePage() {
                 setNewType={setNewType}
                 newDescription={newDescription}
                 setNewDescription={setNewDescription}
-                newLat={newLat}
-                setNewLat={setNewLat}
-                newLng={newLng}
-                setNewLng={setNewLng}
+                newGoogleMapsUrl={newGoogleMapsUrl}
+                setNewGoogleMapsUrl={setNewGoogleMapsUrl}
+                newInstagramUrl={newInstagramUrl}
+                setNewInstagramUrl={setNewInstagramUrl}
+                newWhatsappNumber={newWhatsappNumber}
+                setNewWhatsappNumber={setNewWhatsappNumber}
+                newWebsiteUrl={newWebsiteUrl}
+                setNewWebsiteUrl={setNewWebsiteUrl}
+                logoPreviewUrl={logoPreviewUrl}
+                isUploadingLogo={isUploadingLogo}
+                logoReady={Boolean(logoUrl)}
+                onLogoSelect={handleLogoSelect}
+                isExtractingLocation={isExtractingLocation}
                 isSubmitting={isSubmitting}
+                publishError={publishError}
                 submitSuccess={submitSuccess}
                 onAddBusiness={handleAddBusiness}
               />
@@ -354,13 +444,17 @@ export default function HomePage() {
 
       <BusinessDetailSheet
         business={selectedBusiness}
-        onClose={() => setSelectedBusiness(null)}
-        onPlaceOrder={handlePlaceOrder}
+        onClose={handleCloseBusinessDetails}
       />
 
       <BottomTabBar
         activeTab={activeTab}
-        onTabChange={setActiveTab}
+        onTabChange={(tab) => {
+          setActiveTab(tab);
+          if (tab !== "home") {
+            setMapPreviewBusiness(null);
+          }
+        }}
         tabLabels={tabLabels}
       />
     </div>

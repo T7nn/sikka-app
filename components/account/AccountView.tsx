@@ -31,11 +31,21 @@ interface AccountViewProps {
   setNewType: (value: BusinessType) => void;
   newDescription: string;
   setNewDescription: (value: string) => void;
-  newLat: string;
-  setNewLat: (value: string) => void;
-  newLng: string;
-  setNewLng: (value: string) => void;
+  newGoogleMapsUrl: string;
+  setNewGoogleMapsUrl: (value: string) => void;
+  newInstagramUrl: string;
+  setNewInstagramUrl: (value: string) => void;
+  newWhatsappNumber: string;
+  setNewWhatsappNumber: (value: string) => void;
+  newWebsiteUrl: string;
+  setNewWebsiteUrl: (value: string) => void;
+  logoPreviewUrl: string | null;
+  isUploadingLogo: boolean;
+  logoReady: boolean;
+  onLogoSelect: (file: File) => void;
+  isExtractingLocation: boolean;
   isSubmitting: boolean;
+  publishError: string | null;
   submitSuccess: boolean;
   onAddBusiness: (e: FormEvent) => void;
 }
@@ -69,11 +79,21 @@ export function AccountView({
   setNewType,
   newDescription,
   setNewDescription,
-  newLat,
-  setNewLat,
-  newLng,
-  setNewLng,
+  newGoogleMapsUrl,
+  setNewGoogleMapsUrl,
+  newInstagramUrl,
+  setNewInstagramUrl,
+  newWhatsappNumber,
+  setNewWhatsappNumber,
+  newWebsiteUrl,
+  setNewWebsiteUrl,
+  logoPreviewUrl,
+  isUploadingLogo,
+  logoReady,
+  onLogoSelect,
+  isExtractingLocation,
   isSubmitting,
+  publishError,
   submitSuccess,
   onAddBusiness,
 }: AccountViewProps) {
@@ -94,11 +114,21 @@ export function AccountView({
             setNewType={setNewType}
             newDescription={newDescription}
             setNewDescription={setNewDescription}
-            newLat={newLat}
-            setNewLat={setNewLat}
-            newLng={newLng}
-            setNewLng={setNewLng}
+            newGoogleMapsUrl={newGoogleMapsUrl}
+            setNewGoogleMapsUrl={setNewGoogleMapsUrl}
+            newInstagramUrl={newInstagramUrl}
+            setNewInstagramUrl={setNewInstagramUrl}
+            newWhatsappNumber={newWhatsappNumber}
+            setNewWhatsappNumber={setNewWhatsappNumber}
+            newWebsiteUrl={newWebsiteUrl}
+            setNewWebsiteUrl={setNewWebsiteUrl}
+            logoPreviewUrl={logoPreviewUrl}
+            isUploadingLogo={isUploadingLogo}
+            logoReady={logoReady}
+            onLogoSelect={onLogoSelect}
+            isExtractingLocation={isExtractingLocation}
             isSubmitting={isSubmitting}
+            publishError={publishError}
             submitSuccess={submitSuccess}
             onAddBusiness={onAddBusiness}
           />

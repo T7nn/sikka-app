@@ -37,24 +37,32 @@ export function BusinessCategories({
             key={id}
             type="button"
             onClick={() => onCategoryChange(id)}
-            className="group flex flex-1 flex-col items-center gap-3 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-[#F9F9F9]"
+            className="group flex flex-1 flex-col items-center gap-3 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-white/20 dark:focus-visible:ring-offset-black"
             aria-label={label}
             aria-pressed={isActive}
           >
             <span
-              className={`flex h-[72px] w-[72px] items-center justify-center rounded-full shadow-soft-airy transition-all duration-200 group-active:scale-95 ${
-                isActive ? "bg-[#222222]" : "bg-white"
+              className={`flex h-[72px] w-[72px] items-center justify-center rounded-full transition-all duration-200 group-active:scale-95 ${
+                isActive
+                  ? "bg-[#222222] shadow-soft-airy dark:bg-white dark:shadow-none"
+                  : "bg-white shadow-soft-airy dark:border dark:border-white/10 dark:bg-[#111111] dark:shadow-none"
               }`}
             >
               <Icon
                 size={26}
                 strokeWidth={1.5}
-                className={isActive ? "text-white" : "text-[#222222]/70"}
+                className={
+                  isActive
+                    ? "text-white dark:text-black"
+                    : "text-[#222222]/70 dark:text-white/70"
+                }
               />
             </span>
             <span
               className={`font-sans text-xs font-medium tracking-wide transition-colors ${
-                isActive ? "text-[#222222]" : "text-[#222222]/60"
+                isActive
+                  ? "text-[#222222] dark:text-white"
+                  : "text-[#222222]/60 dark:text-white/60"
               }`}
             >
               {label}

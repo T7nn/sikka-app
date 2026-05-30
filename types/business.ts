@@ -5,6 +5,17 @@ export interface BusinessRecord {
   description: string;
   latitude: number;
   longitude: number;
+  google_maps_url?: string | null;
+  instagram_url?: string | null;
+  whatsapp_number?: string | null;
+  website_url?: string | null;
+  logo_url?: string | null;
+}
+
+function optionalString(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : null;
 }
 
 export function normalizeBusiness(row: Record<string, unknown>): BusinessRecord | null {
@@ -15,10 +26,7 @@ export function normalizeBusiness(row: Record<string, unknown>): BusinessRecord 
   const latitude = row.latitude ?? row.lat;
   const longitude = row.longitude ?? row.lng;
 
-  if (
-    typeof id !== "string" &&
-    typeof id !== "number"
-  ) {
+  if (typeof id !== "string" && typeof id !== "number") {
     return null;
   }
 
@@ -46,5 +54,14 @@ export function normalizeBusiness(row: Record<string, unknown>): BusinessRecord 
     description,
     latitude: parsedLat,
     longitude: parsedLng,
+    google_maps_url: optionalString(row.google_maps_url),
+    instagram_url: optionalString(row.instagram_url),
+    whatsapp_number: optionalString(row.whatsapp_number),
+    website_url: optionalString(row.website_url),
+    logo_url: optionalString(row.logo_url),
   };
+}
+
+export function formatBusinessTypeLabel(type: string): string {
+  return type.trim().charAt(0).toUpperCase() + type.trim().slice(1).toLowerCase();
 }

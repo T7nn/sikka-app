@@ -6,6 +6,7 @@ import { BusinessCard } from "@/components/search/BusinessCard";
 import type { BusinessRecord } from "@/types/business";
 import type { ActiveCategory } from "@/types/category";
 import { getCategoryLabel, type Translations } from "@/types/i18n";
+import { ui } from "@/utils/ui";
 
 const FILTER_IDS: ActiveCategory[] = ["all", "digital", "physical", "services"];
 
@@ -45,7 +46,7 @@ export function SearchView({
         <Search
           size={18}
           strokeWidth={1.75}
-          className="pointer-events-none absolute inset-s-5 top-1/2 -translate-y-1/2 text-[#222222]/40"
+          className="pointer-events-none absolute inset-s-5 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
           aria-hidden
         />
         <input
@@ -53,7 +54,7 @@ export function SearchView({
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search local businesses…"
-          className="w-full rounded-full bg-white py-4 ps-12 pe-6 font-sans text-sm font-medium text-[#222222] shadow-soft-airy placeholder:text-[#222222]/35 focus:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/15"
+          className={`w-full rounded-full py-4 ps-12 pe-6 font-sans text-sm font-medium ${ui.input}`}
           aria-label="Search local businesses"
         />
       </div>
@@ -70,9 +71,7 @@ export function SearchView({
               onClick={() => onCategoryChange(id)}
               aria-pressed={isActive}
               className={`shrink-0 rounded-full px-5 py-2.5 font-sans text-xs font-medium uppercase tracking-wide transition-colors ${
-                isActive
-                  ? "bg-[#222222] text-white shadow-soft-airy"
-                  : "bg-white text-[#222222]/60 shadow-soft-airy"
+                isActive ? ui.pillActive : ui.pillInactive
               }`}
             >
               {getCategoryLabel(id, labels)}
@@ -83,8 +82,8 @@ export function SearchView({
 
       <ul className="flex flex-col gap-5 pb-4">
         {searchResults.length === 0 ? (
-          <li className="rounded-[32px] bg-white p-8 text-center shadow-soft-airy">
-            <p className="font-sans text-sm text-[#222222]/45">
+          <li className={`p-8 text-center ${ui.card}`}>
+            <p className="font-sans text-sm text-[#222222]/45 dark:text-white/45">
               No businesses found in this category yet.
             </p>
           </li>
