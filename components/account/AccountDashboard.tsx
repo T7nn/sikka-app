@@ -1,14 +1,20 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, ImagePlus, KeyRound, ShieldCheck, Trash2 } from "lucide-react";
+import { Copy, ImagePlus, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
 import { useId, useState, type ChangeEvent, type FormEvent } from "react";
-import { generateAccessKey } from "@/actions/generate-access-key";
 import type { BusinessType } from "@/types/businessForm";
 import type { BusinessRecord } from "@/types/business";
 import type { CurrentUser } from "@/types/user";
 import type { Translations } from "@/types/i18n";
+import { supabase } from "@/utils/supabase";
 import { ui } from "@/utils/ui";
+
+function createInviteKeyCode(): string {
+  const segment = () =>
+    crypto.randomUUID().replace(/-/g, "").slice(0, 4).toUpperCase();
+  return `SK-${segment()}-${segment()}-${segment()}`;
+}
 
 const BUSINESS_TYPES: { value: BusinessType; label: string }[] = [
   { value: "physical", label: "Physical" },
@@ -89,7 +95,7 @@ export function AccountDashboard({
   const logoInputId = useId();
   const isPublishBusy = isExtractingLocation || isSubmitting || isUploadingLogo;
 
-  const [targetEmail, setTargetEmail] = useState("");
+  const [inviteeEmail, setInviteeEmail] = useState("");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [keyError, setKeyError] = useState<string | null>(null);
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
@@ -102,20 +108,36 @@ export function AccountDashboard({
   };
 
   const handleGenerateKey = async () => {
-    setIsGeneratingKey(true);
-    setKeyError(null);
-    setCopySuccess(false);
+    const normalizedEmail = inviteeEmail.trim().toLowerCase();
 
-    const result = await generateAccessKey(targetEmail);
-    setIsGeneratingKey(false);
-
-    if (result.success) {
-      setGeneratedKey(result.keyCode);
+    if (!normalizedEmail) {
+      setKeyError("Invitee email is required.");
       return;
     }
 
+    setIsGeneratingKey(true);
+    setKeyError(null);
+    setCopySuccess(false);
     setGeneratedKey(null);
-    setKeyError(result.error);
+
+    const keyCode = createInviteKeyCode();
+
+    const { error } = await supabase.from("admin_access_keys").insert({
+      key_code: keyCode,
+      is_used: false,
+      used_by_email: null,
+      target_email: normalizedEmail,
+    });
+
+    setIsGeneratingKey(false);
+
+    if (error) {
+      console.error("generate invite key:", error);
+      setKeyError("Unable to generate invite key. Please try again.");
+      return;
+    }
+
+    setGeneratedKey(keyCode);
   };
 
   const handleCopyKey = async () => {
@@ -124,10 +146,15 @@ export function AccountDashboard({
     try {
       await navigator.clipboard.writeText(generatedKey);
       setCopySuccess(true);
-      window.setTimeout(() => setCopySuccess(false), 2000);
     } catch {
       setKeyError("Unable to copy to clipboard.");
     }
+  };
+
+  const handleClearGeneratedKey = () => {
+    setGeneratedKey(null);
+    setCopySuccess(false);
+    setKeyError(null);
   };
 
   return (
@@ -387,20 +414,20 @@ export function AccountDashboard({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
-              Admin Access Keys
+              Generate Invite Key
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
-              Generate a one-time key for a new administrator to use during sign-up.
+              Create a one-time invite key bound to a specific email for administrator sign-up.
             </p>
           </div>
         </div>
 
         <label className="mt-5 block">
-          <span className={fieldLabelClassName}>Target Email</span>
+          <span className={fieldLabelClassName}>Invitee Email</span>
           <input
             type="email"
-            value={targetEmail}
-            onChange={(e) => setTargetEmail(e.target.value)}
+            value={inviteeEmail}
+            onChange={(e) => setInviteeEmail(e.target.value)}
             placeholder="partner@example.com"
             required
             disabled={isGeneratingKey}
@@ -412,10 +439,10 @@ export function AccountDashboard({
         <button
           type="button"
           onClick={handleGenerateKey}
-          disabled={isGeneratingKey || !targetEmail.trim()}
-          className="mt-4 w-full rounded-full bg-[#222222] py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+          disabled={isGeneratingKey || !inviteeEmail.trim()}
+          className="mt-4 w-full rounded-[32px] bg-[#222222] py-4 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
         >
-          {isGeneratingKey ? "Generating…" : "Generate Access Key"}
+          {isGeneratingKey ? "Generating…" : "Generate Key"}
         </button>
 
         {keyError && (
@@ -425,26 +452,36 @@ export function AccountDashboard({
         )}
 
         {generatedKey && (
-          <div className="mt-4 rounded-[32px] border border-[#222222]/10 bg-[#F9F9F9] px-4 py-4 dark:border-white/10 dark:bg-[#111111]">
-            <p className="font-sans text-[10px] font-medium uppercase tracking-wide text-[#222222]/45 dark:text-white/45">
-              New key (copy and share securely)
+          <div className="mt-5 rounded-[32px] bg-white px-5 py-5 shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:text-white dark:shadow-none">
+            <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-[#222222] dark:text-white">
+              Generated invite key
             </p>
-            {targetEmail.trim() && (
-              <p className="mt-2 truncate font-sans text-xs font-medium text-[#222222]/60 dark:text-white/60">
-                For: {targetEmail.trim().toLowerCase()}
+            {inviteeEmail.trim() && (
+              <p className="mt-2 truncate font-sans text-xs font-medium text-[#222222]/55 dark:text-white/55">
+                Bound to: {inviteeEmail.trim().toLowerCase()}
               </p>
             )}
-            <p className="mt-2 break-all font-mono text-sm font-semibold text-[#222222] dark:text-white">
+            <p className="mt-4 break-all text-center font-mono text-lg font-bold uppercase tracking-[0.2em] text-[#222222] dark:text-white">
               {generatedKey}
             </p>
-            <button
-              type="button"
-              onClick={handleCopyKey}
-              className="mt-4 flex w-full items-center justify-center gap-2 rounded-full bg-[#222222] py-3 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
-            >
-              <Copy size={14} strokeWidth={1.75} aria-hidden />
-              {copySuccess ? "Copied" : "Copy Key"}
-            </button>
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row">
+              <button
+                type="button"
+                onClick={handleCopyKey}
+                className="flex flex-1 items-center justify-center gap-2 rounded-[32px] bg-[#222222] py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
+              >
+                <Copy size={14} strokeWidth={1.75} aria-hidden />
+                {copySuccess ? "Copied" : "Copy to Clipboard"}
+              </button>
+              <button
+                type="button"
+                onClick={handleClearGeneratedKey}
+                className="flex flex-1 items-center justify-center gap-2 rounded-[32px] border border-[#222222]/15 bg-white py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-[#222222] transition-colors hover:bg-[#F9F9F9] dark:border-white/10 dark:bg-black dark:text-white dark:hover:bg-[#111111]"
+              >
+                <X size={14} strokeWidth={1.75} aria-hidden />
+                Clear
+              </button>
+            </div>
           </div>
         )}
       </section>
