@@ -1,19 +1,9 @@
 "use client";
 
-import { Briefcase, Monitor, Store, type LucideIcon } from "lucide-react";
 import type { ActiveCategory, BusinessType } from "@/types/category";
 import type { Translations } from "@/types/i18n";
 
-interface Category {
-  id: BusinessType;
-  icon: LucideIcon;
-}
-
-const CATEGORIES: Category[] = [
-  { id: "digital", icon: Monitor },
-  { id: "physical", icon: Store },
-  { id: "services", icon: Briefcase },
-];
+const CATEGORY_IDS: BusinessType[] = ["digital", "physical", "services"];
 
 interface BusinessCategoriesProps {
   activeCategory: ActiveCategory;
@@ -27,8 +17,12 @@ export function BusinessCategories({
   labels,
 }: BusinessCategoriesProps) {
   return (
-    <div className="flex items-start justify-between gap-4 px-1">
-      {CATEGORIES.map(({ id, icon: Icon }) => {
+    <div
+      role="tablist"
+      aria-label="Business categories"
+      className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white p-1.5 shadow-soft-airy backdrop-blur-md dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
+    >
+      {CATEGORY_IDS.map((id) => {
         const isActive = activeCategory === id;
         const label = labels[id];
 
@@ -36,37 +30,16 @@ export function BusinessCategories({
           <button
             key={id}
             type="button"
+            role="tab"
+            aria-selected={isActive}
             onClick={() => onCategoryChange(id)}
-            className="group flex flex-1 flex-col items-center gap-3 rounded-full focus:outline-none focus-visible:ring-2 focus-visible:ring-[#222222]/20 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-white/20 dark:focus-visible:ring-offset-black"
-            aria-label={label}
-            aria-pressed={isActive}
+            className={`rounded-full px-4 py-2 font-sans text-sm font-medium transition-colors ${
+              isActive
+                ? "bg-[#222222] text-white dark:bg-white dark:text-black"
+                : "text-[#222222] dark:text-white"
+            }`}
           >
-            <span
-              className={`flex h-[72px] w-[72px] items-center justify-center rounded-full transition-all duration-200 group-active:scale-95 ${
-                isActive
-                  ? "bg-[#222222] shadow-soft-airy dark:bg-white dark:shadow-none"
-                  : "bg-white shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
-              }`}
-            >
-              <Icon
-                size={26}
-                strokeWidth={1.5}
-                className={
-                  isActive
-                    ? "text-white dark:text-black"
-                    : "text-[#222222]/70 dark:text-white/70"
-                }
-              />
-            </span>
-            <span
-              className={`font-sans text-xs font-medium tracking-wide transition-colors ${
-                isActive
-                  ? "text-[#222222] dark:text-white"
-                  : "text-[#222222]/60 dark:text-white/60"
-              }`}
-            >
-              {label}
-            </span>
+            {label}
           </button>
         );
       })}

@@ -1,8 +1,7 @@
 "use client";
 
-import { Maximize2, Minimize2 } from "lucide-react";
 import { Map, Marker } from "pigeon-maps";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { BusinessRecord } from "@/types/business";
 
 const ABU_DHABI: [number, number] = [24.4539, 54.3773];
@@ -11,23 +10,31 @@ const DEFAULT_ZOOM = 11;
 interface ExpandableMapWidgetProps {
   businesses: BusinessRecord[];
   mapPreviewBusiness: BusinessRecord | null;
-  mapHeight: number;
-  isMapExpanded: boolean;
-  onMapExpandedChange: (expanded: boolean) => void;
   onMapPinSelect?: (business: BusinessRecord) => void;
 }
 
 export function ExpandableMapWidget({
   businesses,
   mapPreviewBusiness,
-  mapHeight,
-  isMapExpanded,
-  onMapExpandedChange,
   onMapPinSelect,
 }: ExpandableMapWidgetProps) {
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(ABU_DHABI);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [mapHeight, setMapHeight] = useState(0);
+  const lastMeasuredHeight = useRef(0);
+
+  const measureMapHeight = useCallback(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    const nextHeight = Math.floor(node.getBoundingClientRect().height);
+    if (nextHeight <= 0 || nextHeight === lastMeasuredHeight.current) return;
+
+    lastMeasuredHeight.current = nextHeight;
+    setMapHeight(nextHeight);
+  }, []);
 
   useEffect(() => {
     if (mapPreviewBusiness === null) {
@@ -54,24 +61,40 @@ export function ExpandableMapWidget({
     );
   }, []);
 
+  useEffect(() => {
+    const node = containerRef.current;
+    if (!node) return;
+
+    let frame = 0;
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measureMapHeight);
+    });
+
+    observer.observe(node);
+    measureMapHeight();
+
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+    };
+  }, [measureMapHeight]);
+
   const selectBusiness = (business: BusinessRecord) => {
     setSelectedBusiness(business);
     onMapPinSelect?.(business);
   };
 
-  const expandMap = () => onMapExpandedChange(true);
-  const collapseMap = () => onMapExpandedChange(false);
-
   return (
-    <div className="absolute inset-0 h-full w-full overflow-hidden">
+    <div ref={containerRef} className="relative z-10 h-full w-full">
       {mapHeight > 0 && (
         <Map
           center={mapCenter}
           zoom={DEFAULT_ZOOM}
           height={mapHeight}
-          mouseEvents={isMapExpanded}
-          touchEvents={isMapExpanded}
-          metaWheelZoom={isMapExpanded}
+          mouseEvents
+          touchEvents
+          metaWheelZoom
         >
           {userLocation && (
             <Marker anchor={userLocation} width={20} style={{ pointerEvents: "none" }}>
@@ -115,19 +138,6 @@ export function ExpandableMapWidget({
           })}
         </Map>
       )}
-
-      <button
-        type="button"
-        aria-label={isMapExpanded ? "Collapse map" : "Expand map"}
-        onClick={isMapExpanded ? collapseMap : expandMap}
-        className="absolute left-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#222222] shadow-soft-airy transition-transform active:scale-95 dark:border dark:border-white/10 dark:bg-black dark:text-white dark:shadow-none"
-      >
-        {isMapExpanded ? (
-          <Minimize2 size={18} strokeWidth={1.75} aria-hidden />
-        ) : (
-          <Maximize2 size={18} strokeWidth={1.75} aria-hidden />
-        )}
-      </button>
     </div>
   );
 }
