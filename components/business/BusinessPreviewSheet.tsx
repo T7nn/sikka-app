@@ -4,8 +4,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { ChevronDown, ExternalLink, MapPin, X } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { formatBusinessTypeLabel, type BusinessRecord } from "@/types/business";
+import { BusinessLogo } from "@/components/business/BusinessLogo";
 import { buildBusinessSocialLinks } from "@/utils/businessSocialLinks";
-import { getIconForBusinessType } from "@/utils/businessIcons";
 
 const TAB_BAR_OFFSET = "calc(4.25rem + env(safe-area-inset-bottom, 0px))";
 const layoutTransition = { layout: { type: "spring" as const, stiffness: 400, damping: 40 } };
@@ -26,8 +26,6 @@ export function BusinessPreviewSheet({ business, onClose }: BusinessPreviewSheet
     () => (business ? buildBusinessSocialLinks(business) : []),
     [business],
   );
-
-  const Icon = business ? getIconForBusinessType(business.type) : null;
 
   return (
     <AnimatePresence>
@@ -56,11 +54,7 @@ export function BusinessPreviewSheet({ business, onClose }: BusinessPreviewSheet
 
           <div className="p-5 pe-14">
             <div className="flex items-start gap-4">
-              {Icon && (
-                <span className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-[#F9F9F9] dark:bg-white/10">
-                  <Icon size={22} strokeWidth={1.5} className="text-[#222222]/70 dark:text-white/70" />
-                </span>
-              )}
+              <BusinessLogo name={business.name} logoUrl={business.logo_url} size="sm" />
               <div className="min-w-0 flex-1">
                 <h2
                   id="business-preview-title"
