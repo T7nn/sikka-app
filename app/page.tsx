@@ -20,7 +20,6 @@ import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { verifyAccessKey } from "@/actions/verify-access-key";
 import { translations, type Language } from "@/types/i18n";
 import type { CurrentUser } from "@/types/user";
-import { parseUserRole } from "@/types/user";
 import { supabase } from "@/utils/supabase";
 
 const VIEW_TRANSITION = {
@@ -93,39 +92,8 @@ export default function HomePage() {
     fetchBusinesses();
   }, [fetchBusinesses]);
 
-  const syncUserProfile = useCallback(async (userId: string, userEmail: string): Promise<boolean> => {
-    const { data: profile, error } = await supabase
-      .from("profiles")
-      .select("email, role")
-      .eq("id", userId)
-      .maybeSingle();
-
-    if (error) {
-      console.error("Failed to fetch profile:", error.message);
-      return false;
-    }
-
-    if (!profile) {
-      const { error: insertError } = await supabase.from("profiles").insert({
-        id: userId,
-        email: userEmail,
-        role: "admin",
-      });
-
-      if (insertError) {
-        console.error("Failed to create profile:", insertError.message);
-        return false;
-      }
-
-      setCurrentUser({ email: userEmail, role: "admin" });
-      return true;
-    }
-
-    setCurrentUser({
-      email: typeof profile.email === "string" ? profile.email : userEmail,
-      role: parseUserRole(profile.role),
-    });
-    return true;
+  const applyAuthSession = useCallback((userEmail: string) => {
+    setCurrentUser({ email: userEmail, role: "admin" });
   }, []);
 
   useEffect(() => {
@@ -133,7 +101,7 @@ export default function HomePage() {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       if (session?.user) {
-        void syncUserProfile(session.user.id, session.user.email ?? "");
+        applyAuthSession(session.user.email ?? "");
       } else {
         setCurrentUser(null);
       }
@@ -141,12 +109,12 @@ export default function HomePage() {
 
     void supabase.auth.getSession().then(({ data: { session } }) => {
       if (session?.user) {
-        void syncUserProfile(session.user.id, session.user.email ?? "");
+        applyAuthSession(session.user.email ?? "");
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [syncUserProfile]);
+  }, [applyAuthSession]);
 
   const filteredBusinesses = useMemo(
     () =>
@@ -200,18 +168,8 @@ export default function HomePage() {
           return;
         }
 
-        const user = data.user;
-        if (!user) {
-          setAuthError("Sign in succeeded but no user session was returned. Please try again.");
-          return;
-        }
-
-        const profileSynced = await syncUserProfile(user.id, user.email ?? email.trim());
-        if (!profileSynced) {
-          setAuthError("Signed in, but your admin profile could not be loaded. Please try again.");
-          return;
-        }
-
+        const signedInEmail = data.user?.email ?? email.trim();
+        applyAuthSession(signedInEmail);
         setActiveTab("account");
         router.push("/");
         router.refresh();
@@ -235,14 +193,8 @@ export default function HomePage() {
         return;
       }
 
-      const user = data.user;
-      if (user) {
-        const profileSynced = await syncUserProfile(user.id, user.email ?? email.trim());
-        if (!profileSynced) {
-          setAuthError("Account created, but your admin profile could not be loaded. Please sign in.");
-          return;
-        }
-
+      if (data.user) {
+        applyAuthSession(data.user.email ?? email.trim());
         setActiveTab("account");
         router.push("/");
         router.refresh();
