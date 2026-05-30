@@ -20,7 +20,7 @@ export function BusinessCategories({
     <div
       role="tablist"
       aria-label="Business categories"
-      className="absolute bottom-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white p-1.5 shadow-soft-airy backdrop-blur-md dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
+      className="absolute top-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-1 rounded-full bg-white p-1.5 shadow-soft-airy backdrop-blur-md dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
     >
       {CATEGORY_IDS.map((id) => {
         const isActive = activeCategory === id;
