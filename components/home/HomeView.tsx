@@ -3,25 +3,28 @@
 import { BusinessCategories } from "@/components/home/BusinessCategories";
 import { ExpandableMapWidget } from "@/components/home/ExpandableMapWidget";
 import type { BusinessRecord } from "@/types/business";
-import type { ActiveCategory, BusinessType } from "@/types/category";
-import type { Translations } from "@/types/i18n";
+import type { ActivityFilterOption, MainCategory } from "@/types/businessCategories";
 
 interface HomeViewProps {
   businesses: BusinessRecord[];
-  activeCategory: ActiveCategory;
-  onCategoryChange: (category: BusinessType) => void;
+  activeMainCategory: MainCategory;
+  onMainCategoryChange: (category: MainCategory) => void;
+  activeActivityFilter: string;
+  onActivityFilterChange: (value: string) => void;
+  activityFilterOptions: ActivityFilterOption[];
   mapPreviewBusiness: BusinessRecord | null;
   onMapPinSelect: (business: BusinessRecord) => void;
-  labels: Translations;
 }
 
 export function HomeView({
   businesses,
-  activeCategory,
-  onCategoryChange,
+  activeMainCategory,
+  onMainCategoryChange,
+  activeActivityFilter,
+  onActivityFilterChange,
+  activityFilterOptions,
   mapPreviewBusiness,
   onMapPinSelect,
-  labels,
 }: HomeViewProps) {
   return (
     <div className="fixed inset-x-0 top-16 bottom-20 z-0">
@@ -32,9 +35,11 @@ export function HomeView({
       />
 
       <BusinessCategories
-        activeCategory={activeCategory}
-        onCategoryChange={onCategoryChange}
-        labels={labels}
+        activeMainCategory={activeMainCategory}
+        onMainCategoryChange={onMainCategoryChange}
+        activeActivityFilter={activeActivityFilter}
+        onActivityFilterChange={onActivityFilterChange}
+        activityOptions={activityFilterOptions}
       />
     </div>
   );

@@ -1,10 +1,14 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Copy, ImagePlus, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
+import { Check, Copy, ImagePlus, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
 import { useId, useState, type ChangeEvent, type FormEvent } from "react";
-import type { BusinessType } from "@/types/businessForm";
 import type { BusinessRecord } from "@/types/business";
+import {
+  getActivitiesForMainCategory,
+  MAIN_CATEGORIES,
+  type MainCategory,
+} from "@/types/businessCategories";
 import type { CurrentUser } from "@/types/user";
 import type { Translations } from "@/types/i18n";
 import { supabase } from "@/utils/supabase";
@@ -16,19 +20,67 @@ function createInviteKeyCode(): string {
   return `SK-${segment()}-${segment()}-${segment()}`;
 }
 
-const BUSINESS_TYPES: { value: BusinessType; label: string }[] = [
-  { value: "physical", label: "Physical" },
-  { value: "digital", label: "Digital" },
-  { value: "services", label: "Services" },
-];
-
 const dashboardInputClassName = `${ui.input} disabled:opacity-50`;
+
+const categoryToggleActiveClassName =
+  "border-[#222222] bg-[#222222] text-white dark:border-white dark:bg-white dark:text-black";
+
+const categoryToggleInactiveClassName =
+  "border-[#222222]/20 bg-white text-[#222222] hover:bg-[#F9F9F9] dark:border-white/20 dark:bg-black dark:text-white dark:hover:bg-[#111111]";
 
 const fieldLabelClassName =
   "mb-2 block font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/45 dark:text-white/45";
 
-function formatTypeLabel(type: string): string {
-  return type.trim().charAt(0).toUpperCase() + type.trim().slice(1).toLowerCase();
+function formatDirectoryCategory(business: BusinessRecord): string {
+  if (business.main_category?.trim()) {
+    return business.main_category.trim();
+  }
+
+  const type = business.type.trim();
+  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+}
+
+interface ActivityCheckboxProps {
+  id: string;
+  label: string;
+  checked: boolean;
+  disabled: boolean;
+  onChange: () => void;
+}
+
+function ActivityCheckbox({
+  id,
+  label,
+  checked,
+  disabled,
+  onChange,
+}: ActivityCheckboxProps) {
+  return (
+    <label
+      htmlFor={id}
+      className="flex cursor-pointer items-center gap-3 rounded-[32px] px-1 py-2 has-disabled:cursor-not-allowed has-disabled:opacity-50"
+    >
+      <input
+        id={id}
+        type="checkbox"
+        checked={checked}
+        disabled={disabled}
+        onChange={onChange}
+        className="peer sr-only"
+      />
+      <span
+        aria-hidden
+        className="flex h-5 w-5 shrink-0 items-center justify-center rounded border border-[#222222] bg-white transition-colors peer-checked:border-[#222222] peer-checked:bg-[#222222] peer-checked:text-white peer-focus-visible:ring-2 peer-focus-visible:ring-[#222222]/30 dark:border-white dark:bg-black dark:peer-checked:border-white dark:peer-checked:bg-white dark:peer-checked:text-black dark:peer-focus-visible:ring-white/30"
+      >
+        <Check
+          size={14}
+          strokeWidth={2.5}
+          className={`text-current ${checked ? "opacity-100" : "opacity-0"}`}
+        />
+      </span>
+      <span className="font-sans text-sm text-[#222222] dark:text-white">{label}</span>
+    </label>
+  );
 }
 
 interface AccountDashboardProps {
@@ -39,8 +91,14 @@ interface AccountDashboardProps {
   onDeleteBusiness: (id: string) => Promise<void>;
   newName: string;
   setNewName: (value: string) => void;
-  newType: BusinessType;
-  setNewType: (value: BusinessType) => void;
+  newMainCategory: MainCategory;
+  onMainCategoryChange: (category: MainCategory) => void;
+  selectedActivities: Record<string, boolean>;
+  onActivityToggle: (activity: string) => void;
+  otherActivityEnabled: boolean;
+  setOtherActivityEnabled: (value: boolean) => void;
+  otherActivityText: string;
+  setOtherActivityText: (value: string) => void;
   newDescription: string;
   setNewDescription: (value: string) => void;
   newGoogleMapsUrl: string;
@@ -70,8 +128,14 @@ export function AccountDashboard({
   onDeleteBusiness,
   newName,
   setNewName,
-  newType,
-  setNewType,
+  newMainCategory,
+  onMainCategoryChange,
+  selectedActivities,
+  onActivityToggle,
+  otherActivityEnabled,
+  setOtherActivityEnabled,
+  otherActivityText,
+  setOtherActivityText,
   newDescription,
   setNewDescription,
   newGoogleMapsUrl,
@@ -93,7 +157,9 @@ export function AccountDashboard({
   onAddBusiness,
 }: AccountDashboardProps) {
   const logoInputId = useId();
+  const otherActivityInputId = useId();
   const isPublishBusy = isExtractingLocation || isSubmitting || isUploadingLogo;
+  const categoryActivities = getActivitiesForMainCategory(newMainCategory);
 
   const [inviteeEmail, setInviteeEmail] = useState("");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
@@ -211,7 +277,7 @@ export function AccountDashboard({
                       {business.name}
                     </p>
                     <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
-                      {formatTypeLabel(business.type)}
+                      {formatDirectoryCategory(business)}
                     </span>
                   </div>
                   <button
@@ -305,22 +371,66 @@ export function AccountDashboard({
             />
           </label>
 
-          <label className="block">
-            <span className={fieldLabelClassName}>Business type</span>
-            <select
-              value={newType}
-              onChange={(e) => setNewType(e.target.value as BusinessType)}
-              required
-              disabled={isPublishBusy}
-              className={`${dashboardInputClassName} appearance-none`}
-            >
-              {BUSINESS_TYPES.map(({ value, label }) => (
-                <option key={value} value={value}>
-                  {label}
-                </option>
+          <fieldset className="block border-0 p-0">
+            <legend className={fieldLabelClassName}>Primary category</legend>
+            <div className="flex gap-3">
+              {MAIN_CATEGORIES.map((category) => {
+                const isSelected = newMainCategory === category;
+
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    aria-pressed={isSelected}
+                    disabled={isPublishBusy}
+                    onClick={() => onMainCategoryChange(category)}
+                    className={`flex-1 rounded-[32px] border py-4 font-sans text-sm font-medium uppercase tracking-wide transition-colors disabled:cursor-not-allowed disabled:opacity-50 ${
+                      isSelected ? categoryToggleActiveClassName : categoryToggleInactiveClassName
+                    }`}
+                  >
+                    {category}
+                  </button>
+                );
+              })}
+            </div>
+          </fieldset>
+
+          <fieldset className="block rounded-[32px] border border-[#222222]/10 bg-white px-4 py-4 dark:border-white/10 dark:bg-black">
+            <legend className={`${fieldLabelClassName} px-1`}>Activities</legend>
+            <div className="flex flex-col gap-1">
+              {categoryActivities.map((activity) => (
+                <ActivityCheckbox
+                  key={activity}
+                  id={`activity-${activity}`}
+                  label={activity}
+                  checked={Boolean(selectedActivities[activity])}
+                  disabled={isPublishBusy}
+                  onChange={() => onActivityToggle(activity)}
+                />
               ))}
-            </select>
-          </label>
+              <ActivityCheckbox
+                id="activity-other"
+                label="Other"
+                checked={otherActivityEnabled}
+                disabled={isPublishBusy}
+                onChange={() => setOtherActivityEnabled(!otherActivityEnabled)}
+              />
+              {otherActivityEnabled && (
+                <label className="mt-2 block ps-8">
+                  <span className="sr-only">Custom activity</span>
+                  <input
+                    id={otherActivityInputId}
+                    type="text"
+                    value={otherActivityText}
+                    onChange={(e) => setOtherActivityText(e.target.value)}
+                    placeholder="Describe other activity…"
+                    disabled={isPublishBusy}
+                    className={dashboardInputClassName}
+                  />
+                </label>
+              )}
+            </div>
+          </fieldset>
 
           <label className="block">
             <span className={fieldLabelClassName}>Google Maps Link</span>

@@ -12,7 +12,15 @@ import { HomeView } from "@/components/home/HomeView";
 import { SearchView } from "@/components/search/SearchView";
 import { BottomTabBar, type TabId } from "@/components/navigation/BottomTabBar";
 import { normalizeBusiness, type BusinessRecord } from "@/types/business";
-import type { BusinessType } from "@/types/businessForm";
+import {
+  ALL_FOOD_FILTER,
+  buildActivitiesPayload,
+  buildActivityFilterOptions,
+  filterBusinessesForMap,
+  getActivitiesForMainCategory,
+  getAllFilterForCategory,
+  type MainCategory,
+} from "@/types/businessCategories";
 import {
   categoryMatchesFilter,
   type ActiveCategory,
@@ -43,11 +51,19 @@ export default function HomePage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
   const [activeCategory, setActiveCategory] = useState<ActiveCategory>("all");
+  const [activeMainCategory, setActiveMainCategory] = useState<MainCategory>("Food");
+  const [activeActivityFilter, setActiveActivityFilter] =
+    useState<string>(ALL_FOOD_FILTER);
   const [mapPreviewBusiness, setMapPreviewBusiness] = useState<BusinessRecord | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
 
   const [newName, setNewName] = useState("");
-  const [newType, setNewType] = useState<BusinessType>("physical");
+  const [newMainCategory, setNewMainCategory] = useState<MainCategory>("Food");
+  const [selectedActivities, setSelectedActivities] = useState<Record<string, boolean>>(
+    {},
+  );
+  const [otherActivityEnabled, setOtherActivityEnabled] = useState(false);
+  const [otherActivityText, setOtherActivityText] = useState("");
   const [newDescription, setNewDescription] = useState("");
   const [newGoogleMapsUrl, setNewGoogleMapsUrl] = useState("");
   const [newInstagramUrl, setNewInstagramUrl] = useState("");
@@ -117,7 +133,27 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, [applyAuthSession]);
 
-  const filteredBusinesses = useMemo(
+  const activityFilterOptions = useMemo(
+    () => buildActivityFilterOptions(activeMainCategory, businesses),
+    [activeMainCategory, businesses],
+  );
+
+  useEffect(() => {
+    const isValid = activityFilterOptions.some(
+      (option) => option.value === activeActivityFilter,
+    );
+
+    if (!isValid) {
+      setActiveActivityFilter(getAllFilterForCategory(activeMainCategory));
+    }
+  }, [activeMainCategory, activityFilterOptions, activeActivityFilter]);
+
+  const mapFilteredBusinesses = useMemo(
+    () => filterBusinessesForMap(businesses, activeMainCategory, activeActivityFilter),
+    [businesses, activeMainCategory, activeActivityFilter],
+  );
+
+  const searchFilteredBusinesses = useMemo(
     () =>
       businesses.filter((business) =>
         categoryMatchesFilter(business.type, activeCategory),
@@ -134,8 +170,9 @@ export default function HomePage() {
     setActiveCategory((prev) => (prev === category ? "all" : category));
   };
 
-  const handleHomeCategoryChange = (category: BusinessType) => {
-    handleCategoryChange(category);
+  const handleMainCategoryChange = (category: MainCategory) => {
+    setActiveMainCategory(category);
+    setActiveActivityFilter(getAllFilterForCategory(category));
   };
 
   const handleMapPinSelect = (business: BusinessRecord) => {
@@ -265,7 +302,10 @@ export default function HomePage() {
   const resetPublishForm = useCallback(() => {
     clearLogoSelection();
     setNewName("");
-    setNewType("physical");
+    setNewMainCategory("Food");
+    setSelectedActivities({});
+    setOtherActivityEnabled(false);
+    setOtherActivityText("");
     setNewDescription("");
     setNewGoogleMapsUrl("");
     setNewInstagramUrl("");
@@ -300,11 +340,26 @@ export default function HomePage() {
       return;
     }
 
+    const predefinedActivities = getActivitiesForMainCategory(newMainCategory);
+    const activities = buildActivitiesPayload(
+      selectedActivities,
+      predefinedActivities,
+      otherActivityEnabled,
+      otherActivityText,
+    );
+
+    if (activities.length === 0) {
+      setPublishError("Select at least one activity.");
+      return;
+    }
+
     setIsSubmitting(true);
 
     const { error } = await supabase.from("businesses").insert({
       name: newName.trim(),
-      type: newType,
+      type: newMainCategory === "Services" ? "services" : "physical",
+      main_category: newMainCategory,
+      activities,
       description: newDescription.trim(),
       google_maps_url: newGoogleMapsUrl.trim(),
       latitude: extraction.latitude,
@@ -379,12 +434,14 @@ export default function HomePage() {
               className="relative h-full min-h-0 flex-1 overflow-hidden"
             >
               <HomeView
-                businesses={filteredBusinesses}
-                activeCategory={activeCategory}
-                onCategoryChange={handleHomeCategoryChange}
+                businesses={mapFilteredBusinesses}
+                activeMainCategory={activeMainCategory}
+                onMainCategoryChange={handleMainCategoryChange}
+                activeActivityFilter={activeActivityFilter}
+                onActivityFilterChange={setActiveActivityFilter}
+                activityFilterOptions={activityFilterOptions}
                 mapPreviewBusiness={mapPreviewBusiness}
                 onMapPinSelect={handleMapPinSelect}
-                labels={t}
               />
             </motion.div>
           )}
@@ -392,7 +449,7 @@ export default function HomePage() {
           {activeTab === "search" && (
             <motion.div key="search" {...VIEW_TRANSITION} className="h-full">
               <SearchView
-                businesses={filteredBusinesses}
+                businesses={searchFilteredBusinesses}
                 activeCategory={activeCategory}
                 onCategoryChange={handleCategoryChange}
                 onBusinessSelect={handleOpenBusinessDetails}
@@ -422,8 +479,24 @@ export default function HomePage() {
                 onDeleteBusiness={handleDeleteBusiness}
                 newName={newName}
                 setNewName={setNewName}
-                newType={newType}
-                setNewType={setNewType}
+                newMainCategory={newMainCategory}
+                onMainCategoryChange={(category: MainCategory) => {
+                  setNewMainCategory(category);
+                  setSelectedActivities({});
+                  setOtherActivityEnabled(false);
+                  setOtherActivityText("");
+                }}
+                selectedActivities={selectedActivities}
+                onActivityToggle={(activity: string) => {
+                  setSelectedActivities((prev) => ({
+                    ...prev,
+                    [activity]: !prev[activity],
+                  }));
+                }}
+                otherActivityEnabled={otherActivityEnabled}
+                setOtherActivityEnabled={setOtherActivityEnabled}
+                otherActivityText={otherActivityText}
+                setOtherActivityText={setOtherActivityText}
                 newDescription={newDescription}
                 setNewDescription={setNewDescription}
                 newGoogleMapsUrl={newGoogleMapsUrl}

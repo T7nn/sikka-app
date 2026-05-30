@@ -10,6 +10,8 @@ export interface BusinessRecord {
   whatsapp_number?: string | null;
   website_url?: string | null;
   logo_url?: string | null;
+  main_category?: string | null;
+  activities?: string[] | null;
 }
 
 function optionalString(value: unknown): string | null {
@@ -59,7 +61,20 @@ export function normalizeBusiness(row: Record<string, unknown>): BusinessRecord 
     whatsapp_number: optionalString(row.whatsapp_number),
     website_url: optionalString(row.website_url),
     logo_url: optionalString(row.logo_url),
+    main_category: optionalString(row.main_category),
+    activities: normalizeActivities(row.activities),
   };
+}
+
+function normalizeActivities(value: unknown): string[] | null {
+  if (!Array.isArray(value)) return null;
+
+  const items = value
+    .filter((item): item is string => typeof item === "string")
+    .map((item) => item.trim())
+    .filter((item) => item.length > 0);
+
+  return items.length > 0 ? items : null;
 }
 
 export function formatBusinessTypeLabel(type: string): string {

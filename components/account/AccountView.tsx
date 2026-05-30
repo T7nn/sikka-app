@@ -3,7 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { AccountDashboard } from "@/components/account/AccountDashboard";
 import { AuthGateway } from "@/components/account/AuthGateway";
-import type { BusinessType } from "@/types/businessForm";
+import type { MainCategory } from "@/types/businessCategories";
 import type { BusinessRecord } from "@/types/business";
 import type { CurrentUser } from "@/types/user";
 import type { Translations } from "@/types/i18n";
@@ -28,8 +28,14 @@ interface AccountViewProps {
   onDeleteBusiness: (id: string) => Promise<void>;
   newName: string;
   setNewName: (value: string) => void;
-  newType: BusinessType;
-  setNewType: (value: BusinessType) => void;
+  newMainCategory: MainCategory;
+  onMainCategoryChange: (category: MainCategory) => void;
+  selectedActivities: Record<string, boolean>;
+  onActivityToggle: (activity: string) => void;
+  otherActivityEnabled: boolean;
+  setOtherActivityEnabled: (value: boolean) => void;
+  otherActivityText: string;
+  setOtherActivityText: (value: string) => void;
   newDescription: string;
   setNewDescription: (value: string) => void;
   newGoogleMapsUrl: string;
@@ -77,8 +83,14 @@ export function AccountView({
   onDeleteBusiness,
   newName,
   setNewName,
-  newType,
-  setNewType,
+  newMainCategory,
+  onMainCategoryChange,
+  selectedActivities,
+  onActivityToggle,
+  otherActivityEnabled,
+  setOtherActivityEnabled,
+  otherActivityText,
+  setOtherActivityText,
   newDescription,
   setNewDescription,
   newGoogleMapsUrl,
@@ -111,8 +123,14 @@ export function AccountView({
             onDeleteBusiness={onDeleteBusiness}
             newName={newName}
             setNewName={setNewName}
-            newType={newType}
-            setNewType={setNewType}
+            newMainCategory={newMainCategory}
+            onMainCategoryChange={onMainCategoryChange}
+            selectedActivities={selectedActivities}
+            onActivityToggle={onActivityToggle}
+            otherActivityEnabled={otherActivityEnabled}
+            setOtherActivityEnabled={setOtherActivityEnabled}
+            otherActivityText={otherActivityText}
+            setOtherActivityText={setOtherActivityText}
             newDescription={newDescription}
             setNewDescription={setNewDescription}
             newGoogleMapsUrl={newGoogleMapsUrl}
