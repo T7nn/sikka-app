@@ -21,9 +21,9 @@ export async function verifyAccessKey(
     return { success: false, error: "Email is required to verify the access key." };
   }
 
-  const { data: row, error: fetchError } = await supabase
+  const { data: fetchedKey, error: fetchError } = await supabase
     .from("admin_access_keys")
-    .select("key_code, is_used")
+    .select("key_code, is_used, target_email")
     .eq("key_code", trimmedKey)
     .maybeSingle();
 
@@ -32,12 +32,22 @@ export async function verifyAccessKey(
     return { success: false, error: "Unable to verify access key. Please try again." };
   }
 
-  if (!row) {
+  if (!fetchedKey) {
     return { success: false, error: "Invalid admin access key." };
   }
 
-  if (row.is_used) {
+  if (fetchedKey.is_used) {
     return { success: false, error: "This admin access key has already been used." };
+  }
+
+  if (
+    fetchedKey.target_email !== null &&
+    fetchedKey.target_email.toLowerCase() !== trimmedEmail.toLowerCase()
+  ) {
+    return {
+      success: false,
+      error: "This access key is not authorized for this email address.",
+    };
   }
 
   const { data: updated, error: updateError } = await supabase

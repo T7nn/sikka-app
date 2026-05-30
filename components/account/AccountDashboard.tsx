@@ -89,6 +89,7 @@ export function AccountDashboard({
   const logoInputId = useId();
   const isPublishBusy = isExtractingLocation || isSubmitting || isUploadingLogo;
 
+  const [targetEmail, setTargetEmail] = useState("");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
   const [keyError, setKeyError] = useState<string | null>(null);
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
@@ -105,7 +106,7 @@ export function AccountDashboard({
     setKeyError(null);
     setCopySuccess(false);
 
-    const result = await generateAccessKey();
+    const result = await generateAccessKey(targetEmail);
     setIsGeneratingKey(false);
 
     if (result.success) {
@@ -394,11 +395,25 @@ export function AccountDashboard({
           </div>
         </div>
 
+        <label className="mt-5 block">
+          <span className={fieldLabelClassName}>Target Email</span>
+          <input
+            type="email"
+            value={targetEmail}
+            onChange={(e) => setTargetEmail(e.target.value)}
+            placeholder="partner@example.com"
+            required
+            disabled={isGeneratingKey}
+            autoComplete="email"
+            className={dashboardInputClassName}
+          />
+        </label>
+
         <button
           type="button"
           onClick={handleGenerateKey}
-          disabled={isGeneratingKey}
-          className="mt-5 w-full rounded-full bg-[#222222] py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+          disabled={isGeneratingKey || !targetEmail.trim()}
+          className="mt-4 w-full rounded-full bg-[#222222] py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
         >
           {isGeneratingKey ? "Generating…" : "Generate Access Key"}
         </button>
@@ -414,6 +429,11 @@ export function AccountDashboard({
             <p className="font-sans text-[10px] font-medium uppercase tracking-wide text-[#222222]/45 dark:text-white/45">
               New key (copy and share securely)
             </p>
+            {targetEmail.trim() && (
+              <p className="mt-2 truncate font-sans text-xs font-medium text-[#222222]/60 dark:text-white/60">
+                For: {targetEmail.trim().toLowerCase()}
+              </p>
+            )}
             <p className="mt-2 break-all font-mono text-sm font-semibold text-[#222222] dark:text-white">
               {generatedKey}
             </p>
