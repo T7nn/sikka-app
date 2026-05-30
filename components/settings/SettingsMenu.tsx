@@ -29,7 +29,7 @@ export function SettingsMenu({
   const isDark = mounted && (resolvedTheme === "dark" || theme === "dark");
 
   return (
-    <div className="absolute inset-e-6 top-6 z-50">
+    <div className="relative z-50">
       <button
         type="button"
         onClick={() => setIsOpen((prev) => !prev)}

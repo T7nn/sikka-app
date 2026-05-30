@@ -45,7 +45,7 @@ export function BusinessCategories({
               className={`flex h-[72px] w-[72px] items-center justify-center rounded-full transition-all duration-200 group-active:scale-95 ${
                 isActive
                   ? "bg-[#222222] shadow-soft-airy dark:bg-white dark:shadow-none"
-                  : "bg-white shadow-soft-airy dark:border dark:border-white/10 dark:bg-[#111111] dark:shadow-none"
+                  : "bg-white shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
               }`}
             >
               <Icon

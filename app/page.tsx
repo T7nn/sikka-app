@@ -1,6 +1,7 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
+import { AppHeader } from "@/components/layout/AppHeader";
 import { SettingsMenu } from "@/components/settings/SettingsMenu";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
@@ -351,19 +352,21 @@ export default function HomePage() {
 
   return (
     <div
-      className={`relative flex min-h-dvh flex-col bg-white dark:bg-black ${
+      className={`flex min-h-dvh flex-col bg-white dark:bg-black ${
         language === "ar" ? "font-arabic" : ""
       }`}
     >
-      <SettingsMenu
-        language={language}
-        onLanguageChange={setLanguage}
-        labels={t}
-      />
+      <AppHeader>
+        <SettingsMenu
+          language={language}
+          onLanguageChange={setLanguage}
+          labels={t}
+        />
+      </AppHeader>
 
       <main
         id="main-content"
-        className="flex-1 bg-white px-6 pb-4 pt-8 dark:bg-black"
+        className="flex min-h-0 flex-1 flex-col bg-white px-6 pb-4 dark:bg-black"
         aria-label={`${tabLabels[activeTab]} view`}
       >
         <AnimatePresence mode="wait">

@@ -8,25 +8,30 @@ import type { BusinessRecord } from "@/types/business";
 
 const ABU_DHABI: [number, number] = [24.4539, 54.3773];
 const DEFAULT_ZOOM = 11;
-const COLLAPSED_HEIGHT = 240;
+const mapLayoutTransition = {
+  layout: { type: "spring" as const, stiffness: 320, damping: 32 },
+};
 
 interface ExpandableMapWidgetProps {
   businesses: BusinessRecord[];
   mapPreviewBusiness: BusinessRecord | null;
+  isMapExpanded: boolean;
+  onMapExpandedChange: (expanded: boolean) => void;
   onMapPinSelect?: (business: BusinessRecord) => void;
-  onExpandedChange?: (expanded: boolean) => void;
 }
 
 export function ExpandableMapWidget({
   businesses,
   mapPreviewBusiness,
+  isMapExpanded,
+  onMapExpandedChange,
   onMapPinSelect,
-  onExpandedChange,
 }: ExpandableMapWidgetProps) {
-  const [expanded, setExpanded] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
+  const [mapCenter, setMapCenter] = useState<[number, number]>(ABU_DHABI);
+  const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
-  const [mapHeight, setMapHeight] = useState(COLLAPSED_HEIGHT);
+  const [mapHeight, setMapHeight] = useState(320);
 
   useEffect(() => {
     if (mapPreviewBusiness === null) {
@@ -35,8 +40,23 @@ export function ExpandableMapWidget({
   }, [mapPreviewBusiness]);
 
   useEffect(() => {
-    onExpandedChange?.(expanded);
-  }, [expanded, onExpandedChange]);
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords: [number, number] = [
+          position.coords.latitude,
+          position.coords.longitude,
+        ];
+        setMapCenter(coords);
+        setUserLocation(coords);
+      },
+      () => {
+        // Keep default center when permission is denied or unavailable.
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60_000 },
+    );
+  }, []);
 
   useEffect(() => {
     const node = containerRef.current;
@@ -48,34 +68,46 @@ export function ExpandableMapWidget({
 
     observer.observe(node);
     return () => observer.disconnect();
-  }, []);
-
-  const collapse = () => setExpanded(false);
-  const expand = () => setExpanded(true);
+  }, [isMapExpanded]);
 
   const selectBusiness = (business: BusinessRecord) => {
     setSelectedBusiness(business);
     onMapPinSelect?.(business);
   };
 
+  const expandMap = () => onMapExpandedChange(true);
+  const collapseMap = () => onMapExpandedChange(false);
+
   return (
     <motion.div
       ref={containerRef}
       layout
-      animate={{
-        height: expanded ? "calc(100dvh - 15rem)" : COLLAPSED_HEIGHT,
-      }}
-      transition={{ type: "spring", stiffness: 320, damping: 32 }}
-      className="relative w-full shrink-0 overflow-hidden rounded-[32px] bg-white shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
+      transition={mapLayoutTransition}
+      className={`relative w-full overflow-hidden rounded-[32px] bg-white shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:shadow-none ${
+        isMapExpanded ? "min-h-0 flex-1" : "h-[50vh] shrink-0"
+      }`}
     >
       <Map
-        center={ABU_DHABI}
+        center={mapCenter}
         zoom={DEFAULT_ZOOM}
         height={mapHeight}
-        mouseEvents={expanded}
-        touchEvents={expanded}
-        metaWheelZoom={expanded}
+        mouseEvents={isMapExpanded}
+        touchEvents={isMapExpanded}
+        metaWheelZoom={isMapExpanded}
       >
+        {userLocation && (
+          <Marker
+            anchor={userLocation}
+            width={20}
+            style={{ pointerEvents: "none" }}
+          >
+            <span
+              className="relative z-10 flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#2563EB] shadow-soft-airy dark:border-white/20 dark:shadow-none"
+              aria-hidden
+            />
+          </Marker>
+        )}
+
         {businesses.map((business) => {
           const isSelected = selectedBusiness?.id === business.id;
 
@@ -110,27 +142,18 @@ export function ExpandableMapWidget({
       </Map>
 
       <div className="pointer-events-none absolute inset-0 z-10">
-        {!expanded && (
-          <button
-            type="button"
-            aria-label="Expand map"
-            onClick={expand}
-            className="pointer-events-auto absolute inset-e-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95 dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
-          >
-            <Maximize2 size={16} strokeWidth={1.75} className="text-[#222222]/70 dark:text-white/70" />
-          </button>
-        )}
-
-        {expanded && (
-          <button
-            type="button"
-            aria-label="Shrink map"
-            onClick={collapse}
-            className="pointer-events-auto absolute inset-e-4 top-4 flex h-9 w-9 items-center justify-center rounded-full bg-white shadow-soft-airy transition-transform active:scale-95 dark:border dark:border-white/10 dark:bg-black dark:shadow-none"
-          >
-            <Minimize2 size={16} strokeWidth={1.75} className="text-[#222222]/70 dark:text-white/70" />
-          </button>
-        )}
+        <button
+          type="button"
+          aria-label={isMapExpanded ? "Collapse map" : "Expand map"}
+          onClick={isMapExpanded ? collapseMap : expandMap}
+          className="pointer-events-auto absolute inset-e-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#222222] shadow-soft-airy transition-transform active:scale-95 dark:border dark:border-white/10 dark:bg-black dark:text-white dark:shadow-none"
+        >
+          {isMapExpanded ? (
+            <Minimize2 size={18} strokeWidth={1.75} aria-hidden />
+          ) : (
+            <Maximize2 size={18} strokeWidth={1.75} aria-hidden />
+          )}
+        </button>
       </div>
     </motion.div>
   );

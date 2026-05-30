@@ -25,24 +25,27 @@ export function HomeView({
   onMapPinSelect,
   labels,
 }: HomeViewProps) {
-  const [mapExpanded, setMapExpanded] = useState(false);
+  const [isMapExpanded, setIsMapExpanded] = useState(false);
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="flex h-full min-h-0 flex-col">
       <ExpandableMapWidget
         businesses={businesses}
         mapPreviewBusiness={mapPreviewBusiness}
+        isMapExpanded={isMapExpanded}
+        onMapExpandedChange={setIsMapExpanded}
         onMapPinSelect={onMapPinSelect}
-        onExpandedChange={setMapExpanded}
       />
 
-      <AnimatePresence>
-        {!mapExpanded && (
+      <AnimatePresence initial={false}>
+        {!isMapExpanded && (
           <motion.div
+            layout
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
+            transition={{ duration: 0.28, ease: "easeInOut" }}
+            className="shrink-0 overflow-hidden"
           >
             <BusinessCategories
               activeCategory={activeCategory}
