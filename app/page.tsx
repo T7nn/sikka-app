@@ -2,6 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { SettingsMenu } from "@/components/settings/SettingsMenu";
+import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AccountView } from "@/components/account/AccountView";
 import { BusinessDetailSheet } from "@/components/business/BusinessDetailSheet";
@@ -30,6 +31,7 @@ const VIEW_TRANSITION = {
 };
 
 export default function HomePage() {
+  const router = useRouter();
   const [language, setLanguage] = useState<Language>("en");
   const [activeTab, setActiveTab] = useState<TabId>("home");
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
@@ -91,7 +93,7 @@ export default function HomePage() {
     fetchBusinesses();
   }, [fetchBusinesses]);
 
-  const syncUserProfile = useCallback(async (userId: string, userEmail: string) => {
+  const syncUserProfile = useCallback(async (userId: string, userEmail: string): Promise<boolean> => {
     const { data: profile, error } = await supabase
       .from("profiles")
       .select("email, role")
@@ -100,7 +102,7 @@ export default function HomePage() {
 
     if (error) {
       console.error("Failed to fetch profile:", error.message);
-      return;
+      return false;
     }
 
     if (!profile) {
@@ -112,17 +114,18 @@ export default function HomePage() {
 
       if (insertError) {
         console.error("Failed to create profile:", insertError.message);
-        return;
+        return false;
       }
 
       setCurrentUser({ email: userEmail, role: "admin" });
-      return;
+      return true;
     }
 
     setCurrentUser({
       email: typeof profile.email === "string" ? profile.email : userEmail,
       role: parseUserRole(profile.role),
     });
+    return true;
   }, []);
 
   useEffect(() => {
@@ -185,35 +188,70 @@ export default function HomePage() {
     setIsLoading(true);
     setAuthError(null);
 
-    if (isLoginMode) {
-      const { error } = await supabase.auth.signInWithPassword({
-        email: email.trim(),
-        password,
-      });
+    try {
+      if (isLoginMode) {
+        const { data, error } = await supabase.auth.signInWithPassword({
+          email: email.trim(),
+          password,
+        });
 
-      if (error) {
-        setAuthError(error.message);
+        if (error) {
+          setAuthError(error.message);
+          return;
+        }
+
+        const user = data.user;
+        if (!user) {
+          setAuthError("Sign in succeeded but no user session was returned. Please try again.");
+          return;
+        }
+
+        const profileSynced = await syncUserProfile(user.id, user.email ?? email.trim());
+        if (!profileSynced) {
+          setAuthError("Signed in, but your admin profile could not be loaded. Please try again.");
+          return;
+        }
+
+        setActiveTab("account");
+        router.push("/");
+        router.refresh();
+        return;
       }
-    } else {
+
       const keyResult = await verifyAccessKey(adminAccessKey, email);
 
       if (!keyResult.success) {
         setAuthError(keyResult.error);
-        setIsLoading(false);
         return;
       }
 
-      const { error } = await supabase.auth.signUp({
+      const { data, error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
       });
 
       if (error) {
         setAuthError(error.message);
+        return;
       }
-    }
 
-    setIsLoading(false);
+      const user = data.user;
+      if (user) {
+        const profileSynced = await syncUserProfile(user.id, user.email ?? email.trim());
+        if (!profileSynced) {
+          setAuthError("Account created, but your admin profile could not be loaded. Please sign in.");
+          return;
+        }
+
+        setActiveTab("account");
+        router.push("/");
+        router.refresh();
+      }
+    } catch {
+      setAuthError("Something went wrong. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleSignOut = async () => {
