@@ -5,7 +5,7 @@ import { AccountDashboard } from "@/components/account/AccountDashboard";
 import { AuthGateway } from "@/components/account/AuthGateway";
 import type { BusinessType } from "@/types/businessForm";
 import type { BusinessRecord } from "@/types/business";
-import type { CurrentUser, UserRole } from "@/types/user";
+import type { CurrentUser } from "@/types/user";
 import type { Translations } from "@/types/i18n";
 import type { FormEvent } from "react";
 
@@ -17,13 +17,14 @@ interface AccountViewProps {
   setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
+  adminAccessKey: string;
+  setAdminAccessKey: (value: string) => void;
   isLoginMode: boolean;
   setIsLoginMode: (value: boolean) => void;
   isLoading: boolean;
   authError: string | null;
   onAuth: (e: FormEvent) => void;
   onSignOut: () => void;
-  onRoleChange: (role: UserRole) => void;
   onDeleteBusiness: (id: string) => Promise<void>;
   newName: string;
   setNewName: (value: string) => void;
@@ -65,13 +66,14 @@ export function AccountView({
   setEmail,
   password,
   setPassword,
+  adminAccessKey,
+  setAdminAccessKey,
   isLoginMode,
   setIsLoginMode,
   isLoading,
   authError,
   onAuth,
   onSignOut,
-  onRoleChange,
   onDeleteBusiness,
   newName,
   setNewName,
@@ -106,7 +108,6 @@ export function AccountView({
             businesses={businesses}
             labels={labels}
             onSignOut={onSignOut}
-            onRoleChange={onRoleChange}
             onDeleteBusiness={onDeleteBusiness}
             newName={newName}
             setNewName={setNewName}
@@ -141,6 +142,8 @@ export function AccountView({
             setEmail={setEmail}
             password={password}
             setPassword={setPassword}
+            adminAccessKey={adminAccessKey}
+            setAdminAccessKey={setAdminAccessKey}
             isLoginMode={isLoginMode}
             setIsLoginMode={setIsLoginMode}
             isLoading={isLoading}

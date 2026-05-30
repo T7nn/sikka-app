@@ -12,6 +12,7 @@ export interface Translations {
   createAccount: string;
   email: string;
   password: string;
+  adminAccessKey: string;
   businessDashboard: string;
   publishBusiness: string;
   signOut: string;
@@ -51,6 +52,7 @@ export const translations: Record<Language, Translations> = {
     createAccount: "Create Account",
     email: "Email",
     password: "Password",
+    adminAccessKey: "Admin Access Key",
     businessDashboard: "Business Dashboard",
     publishBusiness: "Publish Business",
     signOut: "Sign Out",
@@ -88,6 +90,7 @@ export const translations: Record<Language, Translations> = {
     createAccount: "إنشاء حساب",
     email: "البريد الإلكتروني",
     password: "كلمة المرور",
+    adminAccessKey: "مفتاح وصول المسؤول",
     businessDashboard: "لوحة تحكم الأعمال",
     publishBusiness: "نشر العمل",
     signOut: "تسجيل الخروج",

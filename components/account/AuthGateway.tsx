@@ -10,6 +10,8 @@ interface AuthGatewayProps {
   setEmail: (value: string) => void;
   password: string;
   setPassword: (value: string) => void;
+  adminAccessKey: string;
+  setAdminAccessKey: (value: string) => void;
   isLoginMode: boolean;
   setIsLoginMode: (value: boolean) => void;
   isLoading: boolean;
@@ -18,7 +20,7 @@ interface AuthGatewayProps {
 }
 
 const authInputClassName =
-  "w-full rounded-[32px] border-0 bg-white px-5 py-4 font-sans text-sm text-[#222222] shadow-soft-airy placeholder:text-[#222222]/30 focus:outline-none focus:ring-2 focus:ring-[#222222]/10 disabled:opacity-50 dark:border dark:border-white/10 dark:bg-[#111111] dark:text-white dark:placeholder:text-white/30 dark:shadow-none dark:focus:ring-white/10";
+  "w-full rounded-[32px] border-0 bg-white px-5 py-4 font-sans text-sm text-[#222222] shadow-soft-airy placeholder:text-[#222222]/30 focus:outline-none focus:ring-2 focus:ring-[#222222]/10 disabled:opacity-50 dark:border dark:border-white/10 dark:bg-black dark:text-white dark:placeholder:text-white/30 dark:shadow-none dark:focus:ring-white/10";
 
 export function AuthGateway({
   labels,
@@ -26,6 +28,8 @@ export function AuthGateway({
   setEmail,
   password,
   setPassword,
+  adminAccessKey,
+  setAdminAccessKey,
   isLoginMode,
   setIsLoginMode,
   isLoading,
@@ -75,8 +79,26 @@ export function AuthGateway({
             />
           </label>
 
+          {!isLoginMode && (
+            <label className="block">
+              <span className="mb-2 block font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/45 dark:text-white/45">
+                {labels.adminAccessKey}
+              </span>
+              <input
+                type="text"
+                value={adminAccessKey}
+                onChange={(e) => setAdminAccessKey(e.target.value)}
+                placeholder="••••-••••-••••"
+                required
+                autoComplete="off"
+                disabled={isLoading}
+                className={authInputClassName}
+              />
+            </label>
+          )}
+
           {authError && (
-            <p className="rounded-[32px] border border-[#222222]/10 bg-[#F9F9F9] px-4 py-3 text-center text-sm text-[#222222] dark:border-white/10 dark:bg-[#111111] dark:text-white/80">
+            <p className="rounded-[32px] border border-[#222222]/10 bg-[#F9F9F9] px-4 py-3 text-center text-sm font-semibold text-[#222222] dark:border-white/10 dark:bg-black dark:text-white">
               {authError}
             </p>
           )}
@@ -98,7 +120,10 @@ export function AuthGateway({
 
         <button
           type="button"
-          onClick={() => setIsLoginMode(!isLoginMode)}
+          onClick={() => {
+            setIsLoginMode(!isLoginMode);
+            setAdminAccessKey("");
+          }}
           disabled={isLoading}
           className="mt-5 w-full py-2 font-sans text-xs font-medium text-[#222222]/45 transition-colors hover:text-[#222222]/70 disabled:opacity-50 dark:text-white/45 dark:hover:text-white/70"
         >

@@ -16,6 +16,7 @@ import {
   type ActiveCategory,
 } from "@/types/category";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
+import { verifyAccessKey } from "@/actions/verify-access-key";
 import { translations, type Language } from "@/types/i18n";
 import type { CurrentUser } from "@/types/user";
 import { parseUserRole } from "@/types/user";
@@ -34,6 +35,7 @@ export default function HomePage() {
   const [currentUser, setCurrentUser] = useState<CurrentUser | null>(null);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [adminAccessKey, setAdminAccessKey] = useState("");
   const [isLoginMode, setIsLoginMode] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -105,7 +107,7 @@ export default function HomePage() {
       const { error: insertError } = await supabase.from("profiles").insert({
         id: userId,
         email: userEmail,
-        role: "customer",
+        role: "admin",
       });
 
       if (insertError) {
@@ -113,7 +115,7 @@ export default function HomePage() {
         return;
       }
 
-      setCurrentUser({ email: userEmail, role: "customer" });
+      setCurrentUser({ email: userEmail, role: "admin" });
       return;
     }
 
@@ -193,6 +195,14 @@ export default function HomePage() {
         setAuthError(error.message);
       }
     } else {
+      const keyResult = await verifyAccessKey(adminAccessKey, email);
+
+      if (!keyResult.success) {
+        setAuthError(keyResult.error);
+        setIsLoading(false);
+        return;
+      }
+
       const { error } = await supabase.auth.signUp({
         email: email.trim(),
         password,
@@ -211,11 +221,8 @@ export default function HomePage() {
     setCurrentUser(null);
     setEmail("");
     setPassword("");
+    setAdminAccessKey("");
     setAuthError(null);
-  };
-
-  const handleRoleChange = (role: CurrentUser["role"]) => {
-    setCurrentUser((prev) => (prev ? { ...prev, role } : null));
   };
 
   const clearLogoSelection = useCallback(() => {
@@ -405,13 +412,14 @@ export default function HomePage() {
                 setEmail={setEmail}
                 password={password}
                 setPassword={setPassword}
+                adminAccessKey={adminAccessKey}
+                setAdminAccessKey={setAdminAccessKey}
                 isLoginMode={isLoginMode}
                 setIsLoginMode={setIsLoginMode}
                 isLoading={isLoading}
                 authError={authError}
                 onAuth={handleAuth}
                 onSignOut={handleSignOut}
-                onRoleChange={handleRoleChange}
                 onDeleteBusiness={handleDeleteBusiness}
                 newName={newName}
                 setNewName={setNewName}
