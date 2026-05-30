@@ -13,21 +13,22 @@ import { SearchView } from "@/components/search/SearchView";
 import { BottomTabBar, type TabId } from "@/components/navigation/BottomTabBar";
 import { normalizeBusiness, type BusinessRecord } from "@/types/business";
 import {
-  ALL_FOOD_FILTER,
+  ALL_MAP_ACTIVITIES_FILTER,
   buildActivitiesPayload,
   buildActivityFilterOptions,
   filterBusinessesForMap,
   getActivitiesForMainCategory,
-  getAllFilterForCategory,
+  getDefaultActivityFilter,
+  type CatalogCategoryFilter,
   type MainCategory,
 } from "@/types/businessCategories";
-import {
-  categoryMatchesFilter,
-  type ActiveCategory,
-} from "@/types/category";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { verifyAccessKey } from "@/actions/verify-access-key";
-import { translations, type Language } from "@/types/i18n";
+import {
+  translateActivityFilterOptions,
+  translations,
+  type Language,
+} from "@/types/i18n";
 import type { CurrentUser } from "@/types/user";
 import { supabase } from "@/utils/supabase";
 
@@ -50,10 +51,11 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
-  const [activeCategory, setActiveCategory] = useState<ActiveCategory>("all");
-  const [activeMainCategory, setActiveMainCategory] = useState<MainCategory>("Food");
-  const [activeActivityFilter, setActiveActivityFilter] =
-    useState<string>(ALL_FOOD_FILTER);
+  const [activeCatalogCategory, setActiveCatalogCategory] =
+    useState<CatalogCategoryFilter>("All");
+  const [activeActivityFilter, setActiveActivityFilter] = useState<string>(
+    ALL_MAP_ACTIVITIES_FILTER,
+  );
   const [mapPreviewBusiness, setMapPreviewBusiness] = useState<BusinessRecord | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
 
@@ -65,6 +67,7 @@ export default function HomePage() {
   const [otherActivityEnabled, setOtherActivityEnabled] = useState(false);
   const [otherActivityText, setOtherActivityText] = useState("");
   const [newDescription, setNewDescription] = useState("");
+  const [hasPhysicalLocation, setHasPhysicalLocation] = useState(true);
   const [newGoogleMapsUrl, setNewGoogleMapsUrl] = useState("");
   const [newInstagramUrl, setNewInstagramUrl] = useState("");
   const [newWhatsappNumber, setNewWhatsappNumber] = useState("");
@@ -134,8 +137,12 @@ export default function HomePage() {
   }, [applyAuthSession]);
 
   const activityFilterOptions = useMemo(
-    () => buildActivityFilterOptions(activeMainCategory, businesses),
-    [activeMainCategory, businesses],
+    () =>
+      translateActivityFilterOptions(
+        buildActivityFilterOptions(activeCatalogCategory, businesses),
+        t,
+      ),
+    [activeCatalogCategory, businesses, t],
   );
 
   useEffect(() => {
@@ -144,35 +151,19 @@ export default function HomePage() {
     );
 
     if (!isValid) {
-      setActiveActivityFilter(getAllFilterForCategory(activeMainCategory));
+      setActiveActivityFilter(getDefaultActivityFilter(activeCatalogCategory));
     }
-  }, [activeMainCategory, activityFilterOptions, activeActivityFilter]);
+  }, [activeCatalogCategory, activityFilterOptions, activeActivityFilter]);
 
   const mapFilteredBusinesses = useMemo(
-    () => filterBusinessesForMap(businesses, activeMainCategory, activeActivityFilter),
-    [businesses, activeMainCategory, activeActivityFilter],
-  );
-
-  const searchFilteredBusinesses = useMemo(
     () =>
-      businesses.filter((business) =>
-        categoryMatchesFilter(business.type, activeCategory),
-      ),
-    [businesses, activeCategory],
+      filterBusinessesForMap(businesses, activeCatalogCategory, activeActivityFilter),
+    [businesses, activeCatalogCategory, activeActivityFilter],
   );
 
-  const handleCategoryChange = (category: ActiveCategory) => {
-    if (category === "all") {
-      setActiveCategory("all");
-      return;
-    }
-
-    setActiveCategory((prev) => (prev === category ? "all" : category));
-  };
-
-  const handleMainCategoryChange = (category: MainCategory) => {
-    setActiveMainCategory(category);
-    setActiveActivityFilter(getAllFilterForCategory(category));
+  const handleCatalogCategoryChange = (category: CatalogCategoryFilter) => {
+    setActiveCatalogCategory(category);
+    setActiveActivityFilter(getDefaultActivityFilter(category));
   };
 
   const handleMapPinSelect = (business: BusinessRecord) => {
@@ -307,37 +298,62 @@ export default function HomePage() {
     setOtherActivityEnabled(false);
     setOtherActivityText("");
     setNewDescription("");
+    setHasPhysicalLocation(true);
     setNewGoogleMapsUrl("");
     setNewInstagramUrl("");
     setNewWhatsappNumber("");
     setNewWebsiteUrl("");
   }, [clearLogoSelection]);
 
+  const handleHasPhysicalLocationChange = (value: boolean) => {
+    setHasPhysicalLocation(value);
+    if (!value) {
+      setNewGoogleMapsUrl("");
+    }
+  };
+
   const handleAddBusiness = async (e: FormEvent) => {
     e.preventDefault();
 
-    if (
-      !newName.trim() ||
-      !newDescription.trim() ||
-      !newGoogleMapsUrl.trim() ||
-      isUploadingLogo
-    ) {
+    if (!newName.trim() || !newDescription.trim() || isUploadingLogo) {
       return;
     }
 
     setPublishError(null);
     setSubmitSuccess(false);
-    setIsExtractingLocation(true);
 
-    const extraction = await extractCoordinatesFromMapsUrl(newGoogleMapsUrl.trim());
+    const websiteUrl = newWebsiteUrl.trim();
+    const instagramUrl = newInstagramUrl.trim();
 
-    setIsExtractingLocation(false);
-
-    if (!extraction.success) {
-      setPublishError(
-        extraction.error ?? "Could not extract coordinates from this Google Maps link.",
-      );
+    if (!hasPhysicalLocation && !websiteUrl && !instagramUrl) {
+      setPublishError(t.publishErrorOnlineLink);
       return;
+    }
+
+    if (hasPhysicalLocation && !newGoogleMapsUrl.trim()) {
+      setPublishError(t.publishErrorMapsRequired);
+      return;
+    }
+
+    let latitude: number | null = null;
+    let longitude: number | null = null;
+    let googleMapsUrl: string | null = null;
+
+    if (hasPhysicalLocation) {
+      setIsExtractingLocation(true);
+
+      const extraction = await extractCoordinatesFromMapsUrl(newGoogleMapsUrl.trim());
+
+      setIsExtractingLocation(false);
+
+      if (!extraction.success) {
+        setPublishError(extraction.error ?? t.publishErrorMapsExtract);
+        return;
+      }
+
+      latitude = extraction.latitude;
+      longitude = extraction.longitude;
+      googleMapsUrl = newGoogleMapsUrl.trim();
     }
 
     const predefinedActivities = getActivitiesForMainCategory(newMainCategory);
@@ -349,24 +365,30 @@ export default function HomePage() {
     );
 
     if (activities.length === 0) {
-      setPublishError("Select at least one activity.");
+      setPublishError(t.publishErrorSelectActivity);
       return;
     }
 
     setIsSubmitting(true);
 
+    const businessType = !hasPhysicalLocation
+      ? "digital"
+      : newMainCategory === "Services"
+        ? "services"
+        : "physical";
+
     const { error } = await supabase.from("businesses").insert({
       name: newName.trim(),
-      type: newMainCategory === "Services" ? "services" : "physical",
+      type: businessType,
       main_category: newMainCategory,
       activities,
       description: newDescription.trim(),
-      google_maps_url: newGoogleMapsUrl.trim(),
-      latitude: extraction.latitude,
-      longitude: extraction.longitude,
-      instagram_url: newInstagramUrl.trim() || null,
+      google_maps_url: googleMapsUrl,
+      latitude,
+      longitude,
+      instagram_url: instagramUrl || null,
       whatsapp_number: newWhatsappNumber.trim() || null,
-      website_url: newWebsiteUrl.trim() || null,
+      website_url: websiteUrl || null,
       logo_url: logoUrl,
     });
 
@@ -435,13 +457,14 @@ export default function HomePage() {
             >
               <HomeView
                 businesses={mapFilteredBusinesses}
-                activeMainCategory={activeMainCategory}
-                onMainCategoryChange={handleMainCategoryChange}
+                activeCatalogCategory={activeCatalogCategory}
+                onCatalogCategoryChange={handleCatalogCategoryChange}
                 activeActivityFilter={activeActivityFilter}
                 onActivityFilterChange={setActiveActivityFilter}
                 activityFilterOptions={activityFilterOptions}
                 mapPreviewBusiness={mapPreviewBusiness}
                 onMapPinSelect={handleMapPinSelect}
+                labels={t}
               />
             </motion.div>
           )}
@@ -449,9 +472,9 @@ export default function HomePage() {
           {activeTab === "search" && (
             <motion.div key="search" {...VIEW_TRANSITION} className="h-full">
               <SearchView
-                businesses={searchFilteredBusinesses}
-                activeCategory={activeCategory}
-                onCategoryChange={handleCategoryChange}
+                businesses={businesses}
+                activeCatalogCategory={activeCatalogCategory}
+                onCatalogCategoryChange={handleCatalogCategoryChange}
                 onBusinessSelect={handleOpenBusinessDetails}
                 labels={t}
               />
@@ -499,6 +522,8 @@ export default function HomePage() {
                 setOtherActivityText={setOtherActivityText}
                 newDescription={newDescription}
                 setNewDescription={setNewDescription}
+                hasPhysicalLocation={hasPhysicalLocation}
+                onHasPhysicalLocationChange={handleHasPhysicalLocationChange}
                 newGoogleMapsUrl={newGoogleMapsUrl}
                 setNewGoogleMapsUrl={setNewGoogleMapsUrl}
                 newInstagramUrl={newInstagramUrl}

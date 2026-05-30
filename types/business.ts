@@ -3,8 +3,8 @@ export interface BusinessRecord {
   name: string;
   type: string;
   description: string;
-  latitude: number;
-  longitude: number;
+  latitude: number | null;
+  longitude: number | null;
   google_maps_url?: string | null;
   instagram_url?: string | null;
   whatsapp_number?: string | null;
@@ -12,6 +12,18 @@ export interface BusinessRecord {
   logo_url?: string | null;
   main_category?: string | null;
   activities?: string[] | null;
+}
+
+function parseCoordinate(value: unknown): number | null {
+  if (value === null || value === undefined) return null;
+  if (typeof value !== "number" && typeof value !== "string") return null;
+
+  const parsed = typeof value === "number" ? value : parseFloat(value);
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+export function businessHasMapCoordinates(business: BusinessRecord): boolean {
+  return business.latitude !== null && business.longitude !== null;
 }
 
 function optionalString(value: unknown): string | null {
@@ -32,22 +44,12 @@ export function normalizeBusiness(row: Record<string, unknown>): BusinessRecord 
     return null;
   }
 
-  if (
-    typeof name !== "string" ||
-    typeof type !== "string" ||
-    typeof description !== "string" ||
-    (typeof latitude !== "number" && typeof latitude !== "string") ||
-    (typeof longitude !== "number" && typeof longitude !== "string")
-  ) {
+  if (typeof name !== "string" || typeof type !== "string" || typeof description !== "string") {
     return null;
   }
 
-  const parsedLat = typeof latitude === "number" ? latitude : parseFloat(latitude);
-  const parsedLng = typeof longitude === "number" ? longitude : parseFloat(longitude);
-
-  if (Number.isNaN(parsedLat) || Number.isNaN(parsedLng)) {
-    return null;
-  }
+  const parsedLat = parseCoordinate(latitude);
+  const parsedLng = parseCoordinate(longitude);
 
   return {
     id: String(id),

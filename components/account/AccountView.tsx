@@ -38,6 +38,8 @@ interface AccountViewProps {
   setOtherActivityText: (value: string) => void;
   newDescription: string;
   setNewDescription: (value: string) => void;
+  hasPhysicalLocation: boolean;
+  onHasPhysicalLocationChange: (value: boolean) => void;
   newGoogleMapsUrl: string;
   setNewGoogleMapsUrl: (value: string) => void;
   newInstagramUrl: string;
@@ -93,6 +95,8 @@ export function AccountView({
   setOtherActivityText,
   newDescription,
   setNewDescription,
+  hasPhysicalLocation,
+  onHasPhysicalLocationChange,
   newGoogleMapsUrl,
   setNewGoogleMapsUrl,
   newInstagramUrl,
@@ -133,6 +137,8 @@ export function AccountView({
             setOtherActivityText={setOtherActivityText}
             newDescription={newDescription}
             setNewDescription={setNewDescription}
+            hasPhysicalLocation={hasPhysicalLocation}
+            onHasPhysicalLocationChange={onHasPhysicalLocationChange}
             newGoogleMapsUrl={newGoogleMapsUrl}
             setNewGoogleMapsUrl={setNewGoogleMapsUrl}
             newInstagramUrl={newInstagramUrl}

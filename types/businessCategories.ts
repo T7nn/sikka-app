@@ -2,10 +2,19 @@ import type { BusinessRecord } from "@/types/business";
 
 export type MainCategory = "Food" | "Services";
 
+export type CatalogCategoryFilter = "All" | MainCategory;
+
 export const MAIN_CATEGORIES: MainCategory[] = ["Food", "Services"];
+
+export const CATALOG_CATEGORY_FILTERS: CatalogCategoryFilter[] = [
+  "All",
+  "Food",
+  "Services",
+];
 
 export const ALL_FOOD_FILTER = "all-food";
 export const ALL_SERVICES_FILTER = "all-services";
+export const ALL_MAP_ACTIVITIES_FILTER = "all-activities";
 
 export interface ActivityFilterOption {
   value: string;
@@ -58,6 +67,20 @@ export function getAllFilterLabel(category: MainCategory): string {
   return category === "Food" ? "All Food" : "All Services";
 }
 
+export function businessMatchesCatalogCategory(
+  business: BusinessRecord,
+  filter: CatalogCategoryFilter,
+): boolean {
+  if (filter === "All") return true;
+
+  const raw = business.main_category?.trim();
+  if (raw === "Food" || raw === "Services") {
+    return raw === filter;
+  }
+
+  return resolveBusinessMainCategory(business) === filter;
+}
+
 export function resolveBusinessMainCategory(business: BusinessRecord): MainCategory {
   const raw = business.main_category?.trim();
 
@@ -95,10 +118,46 @@ function collectCustomActivities(
   return [...custom].sort((a, b) => a.localeCompare(b));
 }
 
+function collectAllCustomActivities(
+  businesses: BusinessRecord[],
+  predefined: readonly string[],
+): string[] {
+  const predefinedKeys = new Set(predefined.map((activity) => activity.toLowerCase()));
+  const custom = new Set<string>();
+
+  for (const business of businesses) {
+    for (const activity of business.activities ?? []) {
+      const trimmed = activity.trim();
+      if (!trimmed) continue;
+      if (!predefinedKeys.has(trimmed.toLowerCase())) {
+        custom.add(trimmed);
+      }
+    }
+  }
+
+  return [...custom].sort((a, b) => a.localeCompare(b));
+}
+
+export function getDefaultActivityFilter(category: CatalogCategoryFilter): string {
+  if (category === "All") return ALL_MAP_ACTIVITIES_FILTER;
+  return getAllFilterForCategory(category);
+}
+
 export function buildActivityFilterOptions(
-  category: MainCategory,
+  category: CatalogCategoryFilter,
   businesses: BusinessRecord[],
 ): ActivityFilterOption[] {
+  if (category === "All") {
+    const predefined = [...FOOD_ACTIVITIES, ...SERVICES_ACTIVITIES] as const;
+    const custom = collectAllCustomActivities(businesses, predefined);
+
+    return [
+      { value: ALL_MAP_ACTIVITIES_FILTER, label: "All Activities" },
+      ...predefined.map((activity) => ({ value: activity, label: activity })),
+      ...custom.map((activity) => ({ value: activity, label: activity })),
+    ];
+  }
+
   const predefined = getActivitiesForMainCategory(category);
   const custom = collectCustomActivities(businesses, category, predefined);
 
@@ -111,15 +170,20 @@ export function buildActivityFilterOptions(
 
 export function filterBusinessesForMap(
   businesses: BusinessRecord[],
-  mainCategory: MainCategory,
+  categoryFilter: CatalogCategoryFilter,
   activityFilter: string,
 ): BusinessRecord[] {
-  const inCategory = businesses.filter(
-    (business) => resolveBusinessMainCategory(business) === mainCategory,
-  );
+  const inCategory =
+    categoryFilter === "All"
+      ? businesses
+      : businesses.filter((business) => businessMatchesCatalogCategory(business, categoryFilter));
 
-  const allFilter = getAllFilterForCategory(mainCategory);
-  if (activityFilter === allFilter) {
+  const bypassActivityFilter =
+    categoryFilter === "All"
+      ? activityFilter === ALL_MAP_ACTIVITIES_FILTER
+      : activityFilter === getAllFilterForCategory(categoryFilter);
+
+  if (bypassActivityFilter) {
     return inCategory;
   }
 

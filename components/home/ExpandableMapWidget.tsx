@@ -2,7 +2,7 @@
 
 import { Map, Marker } from "pigeon-maps";
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { BusinessRecord } from "@/types/business";
+import { businessHasMapCoordinates, type BusinessRecord } from "@/types/business";
 
 const ABU_DHABI: [number, number] = [24.4539, 54.3773];
 const DEFAULT_ZOOM = 11;
@@ -85,6 +85,8 @@ export function ExpandableMapWidget({
     onMapPinSelect?.(business);
   };
 
+  const mappableBusinesses = businesses.filter((business) => businessHasMapCoordinates(business));
+
   return (
     <div ref={containerRef} className="relative z-10 h-full w-full">
       {mapHeight > 0 && (
@@ -105,13 +107,13 @@ export function ExpandableMapWidget({
             </Marker>
           )}
 
-          {businesses.map((business) => {
+          {mappableBusinesses.map((business) => {
             const isSelected = selectedBusiness?.id === business.id;
 
             return (
               <Marker
                 key={business.id}
-                anchor={[business.latitude, business.longitude]}
+                anchor={[business.latitude!, business.longitude!]}
                 width={28}
                 style={{ pointerEvents: "auto" }}
                 onClick={({ event }) => {

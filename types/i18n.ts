@@ -1,3 +1,12 @@
+import {
+  ALL_FOOD_FILTER,
+  ALL_MAP_ACTIVITIES_FILTER,
+  ALL_SERVICES_FILTER,
+  type ActivityFilterOption,
+  type CatalogCategoryFilter,
+  type MainCategory,
+} from "@/types/businessCategories";
+
 export type Language = "en" | "ar";
 
 export interface Translations {
@@ -8,6 +17,22 @@ export interface Translations {
   physical: string;
   services: string;
   all: string;
+  food: string;
+  catalogServices: string;
+  allFood: string;
+  allServices: string;
+  allActivities: string;
+  activityCoffee: string;
+  activityDessert: string;
+  activityPastry: string;
+  activityLemonade: string;
+  activityBeverages: string;
+  activityConsulting: string;
+  activityMaintenance: string;
+  activityTechSupport: string;
+  activityDesign: string;
+  activityLegal: string;
+  activityOther: string;
   signIn: string;
   createAccount: string;
   email: string;
@@ -37,6 +62,33 @@ export interface Translations {
   uploadLogoHint: string;
   uploadingLogo: string;
   logoReady: string;
+  hasPhysicalLocation: string;
+  onlineOnly: string;
+  onlineOnlyHint: string;
+  primaryCategory: string;
+  activities: string;
+  activityOtherPlaceholder: string;
+  customActivity: string;
+  description: string;
+  descriptionPlaceholder: string;
+  googleMapsLink: string;
+  websiteUrl: string;
+  websiteUrlOnlineRequired: string;
+  instagramUrl: string;
+  instagramUrlOnlineRequired: string;
+  whatsappNumber: string;
+  extractingLocation: string;
+  publishing: string;
+  businessPublished: string;
+  searchPlaceholder: string;
+  searchNoResults: string;
+  activityFilter: string;
+  primaryCategoryFilter: string;
+  filterByActivity: string;
+  publishErrorOnlineLink: string;
+  publishErrorMapsRequired: string;
+  publishErrorMapsExtract: string;
+  publishErrorSelectActivity: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -48,6 +100,22 @@ export const translations: Record<Language, Translations> = {
     physical: "Physical",
     services: "Services",
     all: "All",
+    food: "Food",
+    catalogServices: "Services",
+    allFood: "All Food",
+    allServices: "All Services",
+    allActivities: "All Activities",
+    activityCoffee: "Coffee",
+    activityDessert: "Dessert",
+    activityPastry: "Pastry",
+    activityLemonade: "Lemonade",
+    activityBeverages: "Beverages",
+    activityConsulting: "Consulting",
+    activityMaintenance: "Maintenance",
+    activityTechSupport: "Tech Support",
+    activityDesign: "Design",
+    activityLegal: "Legal",
+    activityOther: "Other",
     signIn: "Sign In",
     createAccount: "Create Account",
     email: "Email",
@@ -77,6 +145,35 @@ export const translations: Record<Language, Translations> = {
     uploadLogoHint: "Tap to upload a logo image",
     uploadingLogo: "Uploading logo…",
     logoReady: "Logo ready",
+    hasPhysicalLocation: "Has Physical Location?",
+    onlineOnly: "Online Only",
+    onlineOnlyHint: "Online-only: provide a website or Instagram link below.",
+    primaryCategory: "Primary category",
+    activities: "Activities",
+    activityOtherPlaceholder: "Describe other activity…",
+    customActivity: "Custom activity",
+    description: "Description",
+    descriptionPlaceholder: "Describe this business…",
+    googleMapsLink: "Google Maps Link",
+    websiteUrl: "Website URL",
+    websiteUrlOnlineRequired: "Website URL (required if no Instagram)",
+    instagramUrl: "Instagram URL",
+    instagramUrlOnlineRequired: "Instagram URL (required if no website)",
+    whatsappNumber: "WhatsApp Number",
+    extractingLocation: "Extracting Location…",
+    publishing: "Publishing…",
+    businessPublished: "Business published — now live on the map.",
+    searchPlaceholder: "Search local businesses…",
+    searchNoResults: "No businesses found in this category yet.",
+    activityFilter: "Activity filter",
+    primaryCategoryFilter: "Primary category",
+    filterByActivity: "Filter by activity",
+    publishErrorOnlineLink:
+      "Website or social media link is required for online-only businesses.",
+    publishErrorMapsRequired:
+      "Google Maps link is required for businesses with a physical location.",
+    publishErrorMapsExtract: "Could not extract coordinates from this Google Maps link.",
+    publishErrorSelectActivity: "Select at least one activity.",
   },
   ar: {
     home: "الرئيسية",
@@ -86,6 +183,22 @@ export const translations: Record<Language, Translations> = {
     physical: "مادي",
     services: "خدمات",
     all: "الكل",
+    food: "طعام",
+    catalogServices: "خدمات",
+    allFood: "كل الطعام",
+    allServices: "كل الخدمات",
+    allActivities: "كل الأنشطة",
+    activityCoffee: "قهوة",
+    activityDessert: "حلويات",
+    activityPastry: "معجنات",
+    activityLemonade: "ليمونادة",
+    activityBeverages: "مشروبات",
+    activityConsulting: "استشارات",
+    activityMaintenance: "صيانة",
+    activityTechSupport: "دعم تقني",
+    activityDesign: "تصميم",
+    activityLegal: "قانوني",
+    activityOther: "أخرى",
     signIn: "تسجيل الدخول",
     createAccount: "إنشاء حساب",
     email: "البريد الإلكتروني",
@@ -115,7 +228,47 @@ export const translations: Record<Language, Translations> = {
     uploadLogoHint: "اضغط لرفع صورة الشعار",
     uploadingLogo: "جارٍ رفع الشعار…",
     logoReady: "الشعار جاهز",
+    hasPhysicalLocation: "هل يوجد موقع فعلي؟",
+    onlineOnly: "عبر الإنترنت فقط",
+    onlineOnlyHint: "للأعمال عبر الإنترنت فقط: أضف رابط موقع أو إنستغرام أدناه.",
+    primaryCategory: "الفئة الرئيسية",
+    activities: "الأنشطة",
+    activityOtherPlaceholder: "صف نشاطاً آخر…",
+    customActivity: "نشاط مخصص",
+    description: "الوصف",
+    descriptionPlaceholder: "صف هذا العمل…",
+    googleMapsLink: "رابط خرائط جوجل",
+    websiteUrl: "رابط الموقع",
+    websiteUrlOnlineRequired: "رابط الموقع (مطلوب إن لم يُذكر إنستغرام)",
+    instagramUrl: "رابط إنستغرام",
+    instagramUrlOnlineRequired: "رابط إنستغرام (مطلوب إن لم يُذكر الموقع)",
+    whatsappNumber: "رقم واتساب",
+    extractingLocation: "جارٍ استخراج الموقع…",
+    publishing: "جارٍ النشر…",
+    businessPublished: "تم نشر العمل — متاح الآن على الخريطة.",
+    searchPlaceholder: "ابحث عن أعمال محلية…",
+    searchNoResults: "لا توجد أعمال في هذه الفئة بعد.",
+    activityFilter: "تصفية النشاط",
+    primaryCategoryFilter: "الفئة الرئيسية",
+    filterByActivity: "تصفية حسب النشاط",
+    publishErrorOnlineLink: "رابط الموقع أو وسائل التواصل مطلوب للأعمال عبر الإنترنت فقط.",
+    publishErrorMapsRequired: "رابط خرائط جوجل مطلوب للأعمال ذات الموقع الفعلي.",
+    publishErrorMapsExtract: "تعذّر استخراج الإحداثيات من رابط خرائط جوجل.",
+    publishErrorSelectActivity: "اختر نشاطاً واحداً على الأقل.",
   },
+};
+
+const ACTIVITY_LABEL_MAP: Record<string, keyof Translations> = {
+  Coffee: "activityCoffee",
+  Dessert: "activityDessert",
+  Pastry: "activityPastry",
+  Lemonade: "activityLemonade",
+  Beverages: "activityBeverages",
+  Consulting: "activityConsulting",
+  Maintenance: "activityMaintenance",
+  "Tech Support": "activityTechSupport",
+  Design: "activityDesign",
+  Legal: "activityLegal",
 };
 
 export function getCategoryLabel(
@@ -124,4 +277,40 @@ export function getCategoryLabel(
 ): string {
   if (id === "all") return t.all;
   return t[id];
+}
+
+export function getCatalogCategoryLabel(
+  category: CatalogCategoryFilter,
+  t: Translations,
+): string {
+  if (category === "All") return t.all;
+  if (category === "Food") return t.food;
+  return t.catalogServices;
+}
+
+export function getMainCategoryLabel(category: MainCategory, t: Translations): string {
+  return category === "Food" ? t.food : t.catalogServices;
+}
+
+export function getActivityLabel(activity: string, t: Translations): string {
+  const key = ACTIVITY_LABEL_MAP[activity];
+  if (key) return t[key];
+  return activity;
+}
+
+export function getActivityFilterLabel(filterValue: string, t: Translations): string {
+  if (filterValue === ALL_FOOD_FILTER) return t.allFood;
+  if (filterValue === ALL_SERVICES_FILTER) return t.allServices;
+  if (filterValue === ALL_MAP_ACTIVITIES_FILTER) return t.allActivities;
+  return getActivityLabel(filterValue, t);
+}
+
+export function translateActivityFilterOptions(
+  options: ActivityFilterOption[],
+  t: Translations,
+): ActivityFilterOption[] {
+  return options.map((option) => ({
+    value: option.value,
+    label: getActivityFilterLabel(option.value, t),
+  }));
 }

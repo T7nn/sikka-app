@@ -7,10 +7,16 @@ import type { BusinessRecord } from "@/types/business";
 import {
   getActivitiesForMainCategory,
   MAIN_CATEGORIES,
+  resolveBusinessMainCategory,
   type MainCategory,
 } from "@/types/businessCategories";
 import type { CurrentUser } from "@/types/user";
-import type { Translations } from "@/types/i18n";
+import {
+  getActivityLabel,
+  getCatalogCategoryLabel,
+  getMainCategoryLabel,
+  type Translations,
+} from "@/types/i18n";
 import { supabase } from "@/utils/supabase";
 import { ui } from "@/utils/ui";
 
@@ -31,13 +37,8 @@ const categoryToggleInactiveClassName =
 const fieldLabelClassName =
   "mb-2 block font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/45 dark:text-white/45";
 
-function formatDirectoryCategory(business: BusinessRecord): string {
-  if (business.main_category?.trim()) {
-    return business.main_category.trim();
-  }
-
-  const type = business.type.trim();
-  return type.charAt(0).toUpperCase() + type.slice(1).toLowerCase();
+function formatDirectoryCategory(business: BusinessRecord, labels: Translations): string {
+  return getCatalogCategoryLabel(resolveBusinessMainCategory(business), labels);
 }
 
 interface ActivityCheckboxProps {
@@ -101,6 +102,8 @@ interface AccountDashboardProps {
   setOtherActivityText: (value: string) => void;
   newDescription: string;
   setNewDescription: (value: string) => void;
+  hasPhysicalLocation: boolean;
+  onHasPhysicalLocationChange: (value: boolean) => void;
   newGoogleMapsUrl: string;
   setNewGoogleMapsUrl: (value: string) => void;
   newInstagramUrl: string;
@@ -138,6 +141,8 @@ export function AccountDashboard({
   setOtherActivityText,
   newDescription,
   setNewDescription,
+  hasPhysicalLocation,
+  onHasPhysicalLocationChange,
   newGoogleMapsUrl,
   setNewGoogleMapsUrl,
   newInstagramUrl,
@@ -158,6 +163,7 @@ export function AccountDashboard({
 }: AccountDashboardProps) {
   const logoInputId = useId();
   const otherActivityInputId = useId();
+  const hasPhysicalLocationId = useId();
   const isPublishBusy = isExtractingLocation || isSubmitting || isUploadingLogo;
   const categoryActivities = getActivitiesForMainCategory(newMainCategory);
 
@@ -277,7 +283,7 @@ export function AccountDashboard({
                       {business.name}
                     </p>
                     <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
-                      {formatDirectoryCategory(business)}
+                      {formatDirectoryCategory(business, labels)}
                     </span>
                   </div>
                   <button
@@ -359,11 +365,11 @@ export function AccountDashboard({
           </label>
 
           <label className="block">
-            <span className={fieldLabelClassName}>Description</span>
+            <span className={fieldLabelClassName}>{labels.description}</span>
             <textarea
               value={newDescription}
               onChange={(e) => setNewDescription(e.target.value)}
-              placeholder="Describe this business…"
+              placeholder={labels.descriptionPlaceholder}
               required
               rows={3}
               disabled={isPublishBusy}
@@ -372,7 +378,7 @@ export function AccountDashboard({
           </label>
 
           <fieldset className="block border-0 p-0">
-            <legend className={fieldLabelClassName}>Primary category</legend>
+            <legend className={fieldLabelClassName}>{labels.primaryCategory}</legend>
             <div className="flex gap-3">
               {MAIN_CATEGORIES.map((category) => {
                 const isSelected = newMainCategory === category;
@@ -388,7 +394,7 @@ export function AccountDashboard({
                       isSelected ? categoryToggleActiveClassName : categoryToggleInactiveClassName
                     }`}
                   >
-                    {category}
+                    {getMainCategoryLabel(category, labels)}
                   </button>
                 );
               })}
@@ -396,13 +402,13 @@ export function AccountDashboard({
           </fieldset>
 
           <fieldset className="block rounded-[32px] border border-[#222222]/10 bg-white px-4 py-4 dark:border-white/10 dark:bg-black">
-            <legend className={`${fieldLabelClassName} px-1`}>Activities</legend>
+            <legend className={`${fieldLabelClassName} px-1`}>{labels.activities}</legend>
             <div className="flex flex-col gap-1">
               {categoryActivities.map((activity) => (
                 <ActivityCheckbox
                   key={activity}
                   id={`activity-${activity}`}
-                  label={activity}
+                  label={getActivityLabel(activity, labels)}
                   checked={Boolean(selectedActivities[activity])}
                   disabled={isPublishBusy}
                   onChange={() => onActivityToggle(activity)}
@@ -410,20 +416,20 @@ export function AccountDashboard({
               ))}
               <ActivityCheckbox
                 id="activity-other"
-                label="Other"
+                label={labels.activityOther}
                 checked={otherActivityEnabled}
                 disabled={isPublishBusy}
                 onChange={() => setOtherActivityEnabled(!otherActivityEnabled)}
               />
               {otherActivityEnabled && (
                 <label className="mt-2 block ps-8">
-                  <span className="sr-only">Custom activity</span>
+                  <span className="sr-only">{labels.customActivity}</span>
                   <input
                     id={otherActivityInputId}
                     type="text"
                     value={otherActivityText}
                     onChange={(e) => setOtherActivityText(e.target.value)}
-                    placeholder="Describe other activity…"
+                    placeholder={labels.activityOtherPlaceholder}
                     disabled={isPublishBusy}
                     className={dashboardInputClassName}
                   />
@@ -432,50 +438,77 @@ export function AccountDashboard({
             </div>
           </fieldset>
 
-          <label className="block">
-            <span className={fieldLabelClassName}>Google Maps Link</span>
-            <input
-              type="url"
-              value={newGoogleMapsUrl}
-              onChange={(e) => setNewGoogleMapsUrl(e.target.value)}
-              placeholder="https://maps.app.goo.gl/…"
-              required
-              disabled={isPublishBusy}
-              className={dashboardInputClassName}
-            />
-          </label>
+          <ActivityCheckbox
+            id={hasPhysicalLocationId}
+            label={labels.hasPhysicalLocation}
+            checked={hasPhysicalLocation}
+            disabled={isPublishBusy}
+            onChange={() => onHasPhysicalLocationChange(!hasPhysicalLocation)}
+          />
+
+          {!hasPhysicalLocation && (
+            <p className="font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/55 dark:text-white/55">
+              {labels.onlineOnly}
+            </p>
+          )}
+
+          {hasPhysicalLocation && (
+            <label className="block">
+              <span className={fieldLabelClassName}>{labels.googleMapsLink}</span>
+              <input
+                type="url"
+                value={newGoogleMapsUrl}
+                onChange={(e) => setNewGoogleMapsUrl(e.target.value)}
+                placeholder="https://maps.app.goo.gl/…"
+                required
+                disabled={isPublishBusy}
+                className={dashboardInputClassName}
+              />
+            </label>
+          )}
 
           <label className="block">
-            <span className={fieldLabelClassName}>Instagram URL</span>
-            <input
-              type="url"
-              value={newInstagramUrl}
-              onChange={(e) => setNewInstagramUrl(e.target.value)}
-              placeholder="https://instagram.com/…"
-              disabled={isPublishBusy}
-              className={dashboardInputClassName}
-            />
-          </label>
-
-          <label className="block">
-            <span className={fieldLabelClassName}>WhatsApp Number</span>
-            <input
-              type="tel"
-              value={newWhatsappNumber}
-              onChange={(e) => setNewWhatsappNumber(e.target.value)}
-              placeholder="+971 50 000 0000"
-              disabled={isPublishBusy}
-              className={dashboardInputClassName}
-            />
-          </label>
-
-          <label className="block">
-            <span className={fieldLabelClassName}>Website URL</span>
+            <span className={fieldLabelClassName}>
+              {hasPhysicalLocation ? labels.websiteUrl : labels.websiteUrlOnlineRequired}
+            </span>
             <input
               type="url"
               value={newWebsiteUrl}
               onChange={(e) => setNewWebsiteUrl(e.target.value)}
               placeholder="https://yourbusiness.com"
+              required={!hasPhysicalLocation && !newInstagramUrl.trim()}
+              disabled={isPublishBusy}
+              className={dashboardInputClassName}
+            />
+            {!hasPhysicalLocation && (
+              <p className="mt-2 font-sans text-xs text-[#222222]/45 dark:text-white/45">
+                {labels.onlineOnlyHint}
+              </p>
+            )}
+          </label>
+
+          <label className="block">
+            <span className={fieldLabelClassName}>
+              {hasPhysicalLocation ? labels.instagramUrl : labels.instagramUrlOnlineRequired}
+            </span>
+            <input
+              type="url"
+              value={newInstagramUrl}
+              onChange={(e) => setNewInstagramUrl(e.target.value)}
+              placeholder="https://instagram.com/…"
+              required={!hasPhysicalLocation && !newWebsiteUrl.trim()}
+              disabled={isPublishBusy}
+              className={dashboardInputClassName}
+            />
+          </label>
+
+          <label className="block">
+            <span className={fieldLabelClassName}>{labels.whatsappNumber}</span>
+            <input
+              type="tel"
+              value={newWhatsappNumber}
+              onChange={(e) => setNewWhatsappNumber(e.target.value)}
+              placeholder="+971 50 000 0000"
               disabled={isPublishBusy}
               className={dashboardInputClassName}
             />
@@ -495,9 +528,9 @@ export function AccountDashboard({
             {isUploadingLogo
               ? labels.uploadingLogo
               : isExtractingLocation
-                ? "Extracting Location…"
+                ? labels.extractingLocation
                 : isSubmitting
-                  ? "Publishing…"
+                  ? labels.publishing
                   : labels.publishBusiness}
           </button>
         </form>
@@ -511,7 +544,7 @@ export function AccountDashboard({
               transition={{ duration: 0.25, ease: "easeOut" }}
               className="mt-4 text-center font-sans text-sm text-[#222222]/70 dark:text-white/70"
             >
-              Business published — now live on the map.
+              {labels.businessPublished}
             </motion.p>
           )}
         </AnimatePresence>

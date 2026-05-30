@@ -2,14 +2,25 @@
 
 import { BusinessLogo } from "@/components/business/BusinessLogo";
 import type { BusinessRecord } from "@/types/business";
+import { resolveBusinessMainCategory } from "@/types/businessCategories";
+import {
+  getActivityLabel,
+  getCatalogCategoryLabel,
+  type Translations,
+} from "@/types/i18n";
 import { ui } from "@/utils/ui";
 
 interface BusinessCardProps {
   business: BusinessRecord;
+  labels: Translations;
   onSelect?: (business: BusinessRecord) => void;
 }
 
-export function BusinessCard({ business, onSelect }: BusinessCardProps) {
+export function BusinessCard({ business, labels, onSelect }: BusinessCardProps) {
+  const resolvedCategory = resolveBusinessMainCategory(business);
+  const categoryLabel = getCatalogCategoryLabel(resolvedCategory, labels);
+  const primaryActivity = business.activities?.[0]?.trim();
+
   return (
     <button
       type="button"
@@ -25,10 +36,19 @@ export function BusinessCard({ business, onSelect }: BusinessCardProps) {
           <p className="mt-2 text-sm leading-relaxed text-[#222222]/60 dark:text-white/60">
             {business.description}
           </p>
-          <div className="mt-4 flex items-center gap-2">
-            <span className={`rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-[#222222]/70 dark:text-white/70 ${ui.mutedSurface}`}>
-              {business.type}
+          <div className="mt-4 flex flex-wrap items-center gap-2">
+            <span
+              className={`rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-[#222222]/70 dark:text-white/70 ${ui.mutedSurface}`}
+            >
+              {categoryLabel}
             </span>
+            {primaryActivity && (
+              <span
+                className={`rounded-full px-3 py-1 text-[11px] font-medium uppercase tracking-wide text-[#222222]/70 dark:text-white/70 ${ui.mutedSurface}`}
+              >
+                {getActivityLabel(primaryActivity, labels)}
+              </span>
+            )}
           </div>
         </div>
       </div>
