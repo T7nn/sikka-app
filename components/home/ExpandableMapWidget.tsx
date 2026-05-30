@@ -7,7 +7,6 @@ import type { BusinessRecord } from "@/types/business";
 
 const ABU_DHABI: [number, number] = [24.4539, 54.3773];
 const DEFAULT_ZOOM = 11;
-const MIN_MAP_HEIGHT = 120;
 
 interface ExpandableMapWidgetProps {
   businesses: BusinessRecord[];
@@ -29,8 +28,6 @@ export function ExpandableMapWidget({
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(ABU_DHABI);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
-
-  const pigeonHeight = Math.max(mapHeight, MIN_MAP_HEIGHT);
 
   useEffect(() => {
     if (mapPreviewBusiness === null) {
@@ -66,12 +63,12 @@ export function ExpandableMapWidget({
   const collapseMap = () => onMapExpandedChange(false);
 
   return (
-    <div className="relative h-full w-full">
-      {pigeonHeight > 0 && (
+    <div className="absolute inset-0 h-full w-full overflow-hidden">
+      {mapHeight > 0 && (
         <Map
           center={mapCenter}
           zoom={DEFAULT_ZOOM}
-          height={pigeonHeight}
+          height={mapHeight}
           mouseEvents={isMapExpanded}
           touchEvents={isMapExpanded}
           metaWheelZoom={isMapExpanded}
