@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { ExternalLink } from "lucide-react";
-import { getIconForBusinessType } from "@/utils/businessIcons";
+import { BusinessLogo } from "@/components/business/BusinessLogo";
 import { buildBusinessSocialLinks } from "@/utils/businessSocialLinks";
 import { formatBusinessTypeLabel, type BusinessRecord } from "@/types/business";
 
@@ -12,7 +12,6 @@ interface BusinessDetailSheetProps {
 }
 
 export function BusinessDetailSheet({ business, onClose }: BusinessDetailSheetProps) {
-  const Icon = business ? getIconForBusinessType(business.type) : null;
   const socialLinks = business ? buildBusinessSocialLinks(business) : [];
 
   return (
@@ -43,11 +42,7 @@ export function BusinessDetailSheet({ business, onClose }: BusinessDetailSheetPr
             <div className="mx-auto mb-6 h-1 w-10 rounded-full bg-[#222222]/15 dark:bg-white/15" aria-hidden />
 
             <div className="flex items-start gap-4">
-              {Icon && (
-                <span className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-[#F9F9F9] dark:bg-[#111111]">
-                  <Icon size={24} strokeWidth={1.5} className="text-[#222222]/70 dark:text-white/70" />
-                </span>
-              )}
+              <BusinessLogo name={business.name} logoUrl={business.logo_url} size="sm" />
               <div className="min-w-0 flex-1">
                 <h2
                   id="business-detail-title"
