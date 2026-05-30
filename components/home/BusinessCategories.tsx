@@ -27,7 +27,7 @@ export function BusinessCategories({
   labels,
 }: BusinessCategoriesProps) {
   return (
-    <div className="mt-8 flex items-start justify-between gap-4 px-1">
+    <div className="flex items-start justify-between gap-4 px-1">
       {CATEGORIES.map(({ id, icon: Icon }) => {
         const isActive = activeCategory === id;
         const label = labels[id];

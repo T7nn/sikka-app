@@ -1,6 +1,5 @@
 "use client";
 
-import { motion } from "framer-motion";
 import { Maximize2, Minimize2 } from "lucide-react";
 import { Map, Marker } from "pigeon-maps";
 import { useEffect, useRef, useState } from "react";
@@ -8,9 +7,6 @@ import type { BusinessRecord } from "@/types/business";
 
 const ABU_DHABI: [number, number] = [24.4539, 54.3773];
 const DEFAULT_ZOOM = 11;
-const mapLayoutTransition = {
-  layout: { type: "spring" as const, stiffness: 320, damping: 32 },
-};
 
 interface ExpandableMapWidgetProps {
   businesses: BusinessRecord[];
@@ -63,7 +59,10 @@ export function ExpandableMapWidget({
     if (!node) return;
 
     const observer = new ResizeObserver(([entry]) => {
-      setMapHeight(Math.floor(entry.contentRect.height));
+      const nextHeight = Math.floor(entry.contentRect.height);
+      if (nextHeight > 0) {
+        setMapHeight(nextHeight);
+      }
     });
 
     observer.observe(node);
@@ -79,14 +78,7 @@ export function ExpandableMapWidget({
   const collapseMap = () => onMapExpandedChange(false);
 
   return (
-    <motion.div
-      ref={containerRef}
-      layout
-      transition={mapLayoutTransition}
-      className={`relative w-full overflow-hidden rounded-[32px] bg-white shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:shadow-none ${
-        isMapExpanded ? "min-h-0 flex-1" : "h-[50vh] shrink-0"
-      }`}
-    >
+    <div ref={containerRef} className="relative h-full min-h-0 w-full">
       <Map
         center={mapCenter}
         zoom={DEFAULT_ZOOM}
@@ -96,11 +88,7 @@ export function ExpandableMapWidget({
         metaWheelZoom={isMapExpanded}
       >
         {userLocation && (
-          <Marker
-            anchor={userLocation}
-            width={20}
-            style={{ pointerEvents: "none" }}
-          >
+          <Marker anchor={userLocation} width={20} style={{ pointerEvents: "none" }}>
             <span
               className="relative z-10 flex h-5 w-5 -translate-x-1/2 -translate-y-1/2 items-center justify-center rounded-full border-2 border-white bg-[#2563EB] shadow-soft-airy dark:border-white/20 dark:shadow-none"
               aria-hidden
@@ -141,20 +129,18 @@ export function ExpandableMapWidget({
         })}
       </Map>
 
-      <div className="pointer-events-none absolute inset-0 z-10">
-        <button
-          type="button"
-          aria-label={isMapExpanded ? "Collapse map" : "Expand map"}
-          onClick={isMapExpanded ? collapseMap : expandMap}
-          className="pointer-events-auto absolute inset-e-4 top-4 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#222222] shadow-soft-airy transition-transform active:scale-95 dark:border dark:border-white/10 dark:bg-black dark:text-white dark:shadow-none"
-        >
-          {isMapExpanded ? (
-            <Minimize2 size={18} strokeWidth={1.75} aria-hidden />
-          ) : (
-            <Maximize2 size={18} strokeWidth={1.75} aria-hidden />
-          )}
-        </button>
-      </div>
-    </motion.div>
+      <button
+        type="button"
+        aria-label={isMapExpanded ? "Collapse map" : "Expand map"}
+        onClick={isMapExpanded ? collapseMap : expandMap}
+        className="absolute start-4 top-4 z-20 flex h-11 w-11 items-center justify-center rounded-full bg-white text-[#222222] shadow-soft-airy transition-transform active:scale-95 dark:border dark:border-white/10 dark:bg-black dark:text-white dark:shadow-none"
+      >
+        {isMapExpanded ? (
+          <Minimize2 size={18} strokeWidth={1.75} aria-hidden />
+        ) : (
+          <Maximize2 size={18} strokeWidth={1.75} aria-hidden />
+        )}
+      </button>
+    </div>
   );
 }

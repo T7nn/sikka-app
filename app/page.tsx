@@ -371,7 +371,11 @@ export default function HomePage() {
       >
         <AnimatePresence mode="wait">
           {activeTab === "home" && (
-            <motion.div key="home" {...VIEW_TRANSITION} className="h-full">
+            <motion.div
+              key="home"
+              {...VIEW_TRANSITION}
+              className="flex h-full min-h-0 flex-col overflow-hidden"
+            >
               <HomeView
                 businesses={filteredBusinesses}
                 activeCategory={activeCategory}
