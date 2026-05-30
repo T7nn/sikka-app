@@ -366,7 +366,9 @@ export default function HomePage() {
 
       <main
         id="main-content"
-        className="flex min-h-0 flex-1 flex-col bg-white px-6 pb-4 dark:bg-black"
+        className={`relative flex min-h-0 flex-1 flex-col bg-white dark:bg-black ${
+          activeTab === "home" ? "overflow-hidden px-0 pb-0" : "px-6 pb-4"
+        }`}
         aria-label={`${tabLabels[activeTab]} view`}
       >
         <AnimatePresence mode="wait">
@@ -374,7 +376,7 @@ export default function HomePage() {
             <motion.div
               key="home"
               {...VIEW_TRANSITION}
-              className="flex h-full min-h-0 flex-col overflow-hidden"
+              className="relative h-full min-h-0 flex-1 overflow-hidden"
             >
               <HomeView
                 businesses={filteredBusinesses}
