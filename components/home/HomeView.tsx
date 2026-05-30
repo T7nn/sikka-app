@@ -14,7 +14,6 @@ interface HomeViewProps {
   onCategoryChange: (category: BusinessType) => void;
   mapPreviewBusiness: BusinessRecord | null;
   onMapPinSelect: (business: BusinessRecord) => void;
-  onOpenBusinessDetails: (business: BusinessRecord) => void;
   labels: Translations;
 }
 
@@ -24,7 +23,6 @@ export function HomeView({
   onCategoryChange,
   mapPreviewBusiness,
   onMapPinSelect,
-  onOpenBusinessDetails,
   labels,
 }: HomeViewProps) {
   const [mapExpanded, setMapExpanded] = useState(false);
@@ -35,7 +33,6 @@ export function HomeView({
         businesses={businesses}
         mapPreviewBusiness={mapPreviewBusiness}
         onMapPinSelect={onMapPinSelect}
-        onViewDetails={onOpenBusinessDetails}
         onExpandedChange={setMapExpanded}
       />
 

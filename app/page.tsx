@@ -5,6 +5,7 @@ import { SettingsMenu } from "@/components/settings/SettingsMenu";
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { AccountView } from "@/components/account/AccountView";
 import { BusinessDetailSheet } from "@/components/business/BusinessDetailSheet";
+import { BusinessPreviewSheet } from "@/components/business/BusinessPreviewSheet";
 import { HomeView } from "@/components/home/HomeView";
 import { SearchView } from "@/components/search/SearchView";
 import { BottomTabBar, type TabId } from "@/components/navigation/BottomTabBar";
@@ -377,7 +378,6 @@ export default function HomePage() {
                 onCategoryChange={handleHomeCategoryChange}
                 mapPreviewBusiness={mapPreviewBusiness}
                 onMapPinSelect={handleMapPinSelect}
-                onOpenBusinessDetails={handleOpenBusinessDetails}
                 labels={t}
               />
             </motion.div>
@@ -441,6 +441,11 @@ export default function HomePage() {
           )}
         </AnimatePresence>
       </main>
+
+      <BusinessPreviewSheet
+        business={mapPreviewBusiness}
+        onClose={() => setMapPreviewBusiness(null)}
+      />
 
       <BusinessDetailSheet
         business={selectedBusiness}
