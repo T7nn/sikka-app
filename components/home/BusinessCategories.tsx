@@ -1,5 +1,6 @@
 "use client";
 
+import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
 import {
   CATALOG_CATEGORY_FILTERS,
@@ -11,10 +12,11 @@ import { getCatalogCategoryLabel, type Translations } from "@/types/i18n";
 const pillShellClassName =
   "rounded-full bg-white p-1.5 shadow-soft-airy backdrop-blur-md dark:border dark:border-white/10 dark:bg-black dark:shadow-none";
 
-const categoryButtonActiveClassName =
-  "bg-[#222222] text-white dark:bg-white dark:text-black";
+const categoryButtonClassName =
+  "relative rounded-full bg-transparent px-4 py-2 font-sans text-sm font-medium transition-colors";
 
-const categoryButtonInactiveClassName = "text-[#222222] dark:text-white";
+const categoryTextActiveClassName = "text-white dark:text-black";
+const categoryTextInactiveClassName = "text-[#222222] dark:text-white";
 
 const activitySelectClassName =
   "w-full min-w-[9.5rem] cursor-pointer appearance-none rounded-full bg-transparent py-2 pe-9 ps-4 font-sans text-sm font-medium text-[#222222] outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:text-white";
@@ -53,11 +55,22 @@ export function BusinessCategories({
               role="tab"
               aria-selected={isActive}
               onClick={() => onCatalogCategoryChange(category)}
-              className={`rounded-full px-4 py-2 font-sans text-sm font-medium transition-colors ${
-                isActive ? categoryButtonActiveClassName : categoryButtonInactiveClassName
-              }`}
+              className={categoryButtonClassName}
             >
-              {getCatalogCategoryLabel(category, labels)}
+              {isActive && (
+                <motion.div
+                  layoutId="mapCategoryActiveIndicator"
+                  className="absolute inset-0 z-0 rounded-full bg-[#222222] dark:bg-white"
+                  transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
+                />
+              )}
+              <span
+                className={`relative z-10 ${
+                  isActive ? categoryTextActiveClassName : categoryTextInactiveClassName
+                }`}
+              >
+                {getCatalogCategoryLabel(category, labels)}
+              </span>
             </button>
           );
         })}
