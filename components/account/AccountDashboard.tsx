@@ -183,7 +183,7 @@ export function AccountDashboard({
     const normalizedEmail = inviteeEmail.trim().toLowerCase();
 
     if (!normalizedEmail) {
-      setKeyError("Invitee email is required.");
+      setKeyError(labels.keyErrorInviteeRequired);
       return;
     }
 
@@ -205,7 +205,7 @@ export function AccountDashboard({
 
     if (error) {
       console.error("generate invite key:", error);
-      setKeyError("Unable to generate invite key. Please try again.");
+      setKeyError(labels.keyErrorGenerateFailed);
       return;
     }
 
@@ -219,7 +219,7 @@ export function AccountDashboard({
       await navigator.clipboard.writeText(generatedKey);
       setCopySuccess(true);
     } catch {
-      setKeyError("Unable to copy to clipboard.");
+      setKeyError(labels.keyErrorCopyFailed);
     }
   };
 
@@ -246,8 +246,7 @@ export function AccountDashboard({
 
       <div className="rounded-[32px] border-2 border-[#222222] bg-white px-5 py-5 font-sans shadow-soft-airy dark:border-white dark:bg-black dark:shadow-none">
         <p className="font-sans text-[11px] font-bold uppercase leading-relaxed tracking-[0.12em] text-[#222222] dark:text-white">
-          RESTRICTED ACCESS: SIKKA DIRECTORY MANAGEMENT. This terminal is strictly for authorized
-          administrators.
+          {labels.restrictedAccessBanner}
         </p>
       </div>
 
@@ -258,10 +257,10 @@ export function AccountDashboard({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
-              Directory Management
+              {labels.directoryManagement}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
-              View, add, and remove businesses on the Sikka map and directory.
+              {labels.directoryManagementSubtitle}
             </p>
           </div>
         </div>
@@ -269,7 +268,7 @@ export function AccountDashboard({
         <div className="mt-5 max-h-64 overflow-y-auto rounded-[32px] bg-white [-ms-overflow-style:none] scrollbar-none dark:border dark:border-white/10 dark:bg-black [&::-webkit-scrollbar]:hidden">
           {businesses.length === 0 ? (
             <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
-              No businesses in the directory yet.
+              {labels.directoryEmpty}
             </p>
           ) : (
             <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
@@ -289,11 +288,11 @@ export function AccountDashboard({
                   <button
                     type="button"
                     onClick={() => onDeleteBusiness(business.id)}
-                    aria-label={`Delete ${business.name}`}
+                    aria-label={`${labels.deleteBusinessAria} ${business.name}`}
                     className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#222222] px-3.5 py-2 font-sans text-[10px] font-medium uppercase tracking-wide text-white transition-transform active:scale-95 dark:bg-white dark:text-black"
                   >
                     <Trash2 size={12} strokeWidth={2} aria-hidden />
-                    Delete
+                    {labels.delete}
                   </button>
                 </li>
               ))}
@@ -304,10 +303,10 @@ export function AccountDashboard({
 
       <section className={`p-8 ${ui.card}`}>
         <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
-          Add Business
+          {labels.addBusiness}
         </h2>
         <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
-          Publish a new listing to the Sikka map and directory.
+          {labels.addBusinessSubtitle}
         </p>
 
         <form onSubmit={onAddBusiness} className="mt-6 flex flex-col gap-4">
@@ -352,12 +351,12 @@ export function AccountDashboard({
           </div>
 
           <label className="block">
-            <span className={fieldLabelClassName}>Name</span>
+            <span className={fieldLabelClassName}>{labels.businessName}</span>
             <input
               type="text"
               value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              placeholder="MADRE Desserts"
+              placeholder={labels.businessNamePlaceholder}
               required
               disabled={isPublishBusy}
               className={dashboardInputClassName}
@@ -508,7 +507,7 @@ export function AccountDashboard({
               type="tel"
               value={newWhatsappNumber}
               onChange={(e) => setNewWhatsappNumber(e.target.value)}
-              placeholder="+971 50 000 0000"
+              placeholder={labels.placeholderWhatsapp}
               disabled={isPublishBusy}
               className={dashboardInputClassName}
             />
@@ -557,21 +556,21 @@ export function AccountDashboard({
           </span>
           <div className="min-w-0 flex-1">
             <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
-              Generate Invite Key
+              {labels.generateInviteKey}
             </h2>
             <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
-              Create a one-time invite key bound to a specific email for administrator sign-up.
+              {labels.generateInviteKeySubtitle}
             </p>
           </div>
         </div>
 
         <label className="mt-5 block">
-          <span className={fieldLabelClassName}>Invitee Email</span>
+          <span className={fieldLabelClassName}>{labels.inviteeEmail}</span>
           <input
             type="email"
             value={inviteeEmail}
             onChange={(e) => setInviteeEmail(e.target.value)}
-            placeholder="partner@example.com"
+            placeholder={labels.inviteeEmailPlaceholder}
             required
             disabled={isGeneratingKey}
             autoComplete="email"
@@ -585,7 +584,7 @@ export function AccountDashboard({
           disabled={isGeneratingKey || !inviteeEmail.trim()}
           className="mt-4 w-full rounded-[32px] bg-[#222222] py-4 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
         >
-          {isGeneratingKey ? "Generating…" : "Generate Key"}
+          {isGeneratingKey ? labels.generatingKey : labels.generateKey}
         </button>
 
         {keyError && (
@@ -597,11 +596,11 @@ export function AccountDashboard({
         {generatedKey && (
           <div className="mt-5 rounded-[32px] bg-white px-5 py-5 shadow-soft-airy dark:border dark:border-white/10 dark:bg-black dark:text-white dark:shadow-none">
             <p className="font-sans text-[10px] font-bold uppercase tracking-[0.14em] text-[#222222] dark:text-white">
-              Generated invite key
+              {labels.generatedInviteKeyTitle}
             </p>
             {inviteeEmail.trim() && (
               <p className="mt-2 truncate font-sans text-xs font-medium text-[#222222]/55 dark:text-white/55">
-                Bound to: {inviteeEmail.trim().toLowerCase()}
+                {labels.boundToEmail} {inviteeEmail.trim().toLowerCase()}
               </p>
             )}
             <p className="mt-4 break-all text-center font-mono text-lg font-bold uppercase tracking-[0.2em] text-[#222222] dark:text-white">
@@ -614,7 +613,7 @@ export function AccountDashboard({
                 className="flex flex-1 items-center justify-center gap-2 rounded-[32px] bg-[#222222] py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 dark:bg-white dark:text-black"
               >
                 <Copy size={14} strokeWidth={1.75} aria-hidden />
-                {copySuccess ? "Copied" : "Copy to Clipboard"}
+                {copySuccess ? labels.copied : labels.copyToClipboard}
               </button>
               <button
                 type="button"
@@ -622,7 +621,7 @@ export function AccountDashboard({
                 className="flex flex-1 items-center justify-center gap-2 rounded-[32px] border border-[#222222]/15 bg-white py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-[#222222] transition-colors hover:bg-[#F9F9F9] dark:border-white/10 dark:bg-black dark:text-white dark:hover:bg-[#111111]"
               >
                 <X size={14} strokeWidth={1.75} aria-hidden />
-                Clear
+                {labels.clear}
               </button>
             </div>
           </div>

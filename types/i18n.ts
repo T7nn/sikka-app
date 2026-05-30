@@ -89,6 +89,31 @@ export interface Translations {
   publishErrorMapsRequired: string;
   publishErrorMapsExtract: string;
   publishErrorSelectActivity: string;
+  restrictedAccessBanner: string;
+  directoryManagement: string;
+  directoryManagementSubtitle: string;
+  directoryEmpty: string;
+  delete: string;
+  deleteBusinessAria: string;
+  addBusiness: string;
+  addBusinessSubtitle: string;
+  businessName: string;
+  businessNamePlaceholder: string;
+  generateInviteKey: string;
+  generateInviteKeySubtitle: string;
+  inviteeEmail: string;
+  inviteeEmailPlaceholder: string;
+  generateKey: string;
+  generatingKey: string;
+  keyErrorInviteeRequired: string;
+  keyErrorGenerateFailed: string;
+  keyErrorCopyFailed: string;
+  generatedInviteKeyTitle: string;
+  boundToEmail: string;
+  copyToClipboard: string;
+  copied: string;
+  clear: string;
+  placeholderWhatsapp: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -174,6 +199,34 @@ export const translations: Record<Language, Translations> = {
       "Google Maps link is required for businesses with a physical location.",
     publishErrorMapsExtract: "Could not extract coordinates from this Google Maps link.",
     publishErrorSelectActivity: "Select at least one activity.",
+    restrictedAccessBanner:
+      "RESTRICTED ACCESS: SIKKA DIRECTORY MANAGEMENT. This terminal is strictly for authorized administrators.",
+    directoryManagement: "Directory Management",
+    directoryManagementSubtitle:
+      "View, add, and remove businesses on the Sikka map and directory.",
+    directoryEmpty: "No businesses in the directory yet.",
+    delete: "Delete",
+    deleteBusinessAria: "Delete",
+    addBusiness: "Add Business",
+    addBusinessSubtitle: "Publish a new listing to the Sikka map and directory.",
+    businessName: "Name",
+    businessNamePlaceholder: "MADRE Desserts",
+    generateInviteKey: "Generate Invite Key",
+    generateInviteKeySubtitle:
+      "Create a one-time invite key bound to a specific email for administrator sign-up.",
+    inviteeEmail: "Invitee Email",
+    inviteeEmailPlaceholder: "partner@example.com",
+    generateKey: "Generate Key",
+    generatingKey: "Generating…",
+    keyErrorInviteeRequired: "Invitee email is required.",
+    keyErrorGenerateFailed: "Unable to generate invite key. Please try again.",
+    keyErrorCopyFailed: "Unable to copy to clipboard.",
+    generatedInviteKeyTitle: "Generated invite key",
+    boundToEmail: "Bound to:",
+    copyToClipboard: "Copy to Clipboard",
+    copied: "Copied",
+    clear: "Clear",
+    placeholderWhatsapp: "+971 50 000 0000",
   },
   ar: {
     home: "الرئيسية",
@@ -255,6 +308,33 @@ export const translations: Record<Language, Translations> = {
     publishErrorMapsRequired: "رابط خرائط جوجل مطلوب للأعمال ذات الموقع الفعلي.",
     publishErrorMapsExtract: "تعذّر استخراج الإحداثيات من رابط خرائط جوجل.",
     publishErrorSelectActivity: "اختر نشاطاً واحداً على الأقل.",
+    restrictedAccessBanner:
+      "وصول مقيد: إدارة دليل سِكّة. هذه الوحدة مخصصة للمسؤولين المصرّح لهم فقط.",
+    directoryManagement: "إدارة الدليل",
+    directoryManagementSubtitle: "عرض الأعمال وإضافتها وإزالتها من خريطة ودليل سِكّة.",
+    directoryEmpty: "لا توجد أعمال في الدليل بعد.",
+    delete: "حذف",
+    deleteBusinessAria: "حذف",
+    addBusiness: "إضافة عمل",
+    addBusinessSubtitle: "نشر قائمة جديدة على خريطة ودليل سِكّة.",
+    businessName: "الاسم",
+    businessNamePlaceholder: "مثال: حلويات مادري",
+    generateInviteKey: "إنشاء مفتاح دعوة",
+    generateInviteKeySubtitle:
+      "إنشاء مفتاح دعوة لمرة واحدة مرتبط ببريد إلكتروني محدد لتسجيل المسؤولين.",
+    inviteeEmail: "بريد المدعو",
+    inviteeEmailPlaceholder: "partner@example.com",
+    generateKey: "إنشاء المفتاح",
+    generatingKey: "جارٍ الإنشاء…",
+    keyErrorInviteeRequired: "بريد المدعو مطلوب.",
+    keyErrorGenerateFailed: "تعذّر إنشاء مفتاح الدعوة. يُرجى المحاولة مرة أخرى.",
+    keyErrorCopyFailed: "تعذّر النسخ إلى الحافظة.",
+    generatedInviteKeyTitle: "مفتاح الدعوة المُنشأ",
+    boundToEmail: "مرتبط بـ:",
+    copyToClipboard: "نسخ إلى الحافظة",
+    copied: "تم النسخ",
+    clear: "مسح",
+    placeholderWhatsapp: "+971 50 000 0000",
   },
 };
 
