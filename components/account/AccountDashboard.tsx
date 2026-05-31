@@ -2,7 +2,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy, ImagePlus, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
-import { useId, useState, type ChangeEvent, type FormEvent } from "react";
+import { useId, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import type { BusinessRecord } from "@/types/business";
 import {
   getActivitiesForMainCategory,
@@ -89,7 +89,8 @@ interface AccountDashboardProps {
   businesses: BusinessRecord[];
   labels: Translations;
   onSignOut?: () => void;
-  onDeleteBusiness: (id: string) => Promise<void>;
+  setBusinesses: Dispatch<SetStateAction<BusinessRecord[]>>;
+  onBusinessDeleted?: (id: string) => void;
   newName: string;
   setNewName: (value: string) => void;
   newMainCategory: MainCategory;
@@ -128,7 +129,8 @@ export function AccountDashboard({
   businesses,
   labels,
   onSignOut,
-  onDeleteBusiness,
+  setBusinesses,
+  onBusinessDeleted,
   newName,
   setNewName,
   newMainCategory,
@@ -229,6 +231,23 @@ export function AccountDashboard({
     setKeyError(null);
   };
 
+  const handleDeleteBusiness = async (id: string) => {
+    if (!window.confirm(labels.deleteConfirm)) {
+      return;
+    }
+
+    const { error } = await supabase.from("businesses").delete().eq("id", id);
+
+    if (error) {
+      console.error("Failed to delete business:", error.message);
+      window.alert(labels.deleteErrorAlert);
+      return;
+    }
+
+    setBusinesses((previous) => previous.filter((business) => business.id !== id));
+    onBusinessDeleted?.(id);
+  };
+
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
       {onSignOut && (
@@ -287,9 +306,9 @@ export function AccountDashboard({
                   </div>
                   <button
                     type="button"
-                    onClick={() => onDeleteBusiness(business.id)}
+                    onClick={() => handleDeleteBusiness(business.id)}
                     aria-label={`${labels.deleteBusinessAria} ${business.name}`}
-                    className="flex shrink-0 items-center gap-1.5 rounded-full bg-[#222222] px-3.5 py-2 font-sans text-[10px] font-medium uppercase tracking-wide text-white transition-transform active:scale-95 dark:bg-white dark:text-black"
+                    className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-[#222222] px-3.5 py-2 font-sans text-[10px] font-medium uppercase tracking-wide text-white transition-transform active:scale-95 dark:bg-white dark:text-black"
                   >
                     <Trash2 size={12} strokeWidth={2} aria-hidden />
                     {labels.delete}

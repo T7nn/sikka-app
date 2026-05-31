@@ -94,6 +94,8 @@ export interface Translations {
   directoryManagementSubtitle: string;
   directoryEmpty: string;
   delete: string;
+  deleteConfirm: string;
+  deleteErrorAlert: string;
   deleteBusinessAria: string;
   addBusiness: string;
   addBusinessSubtitle: string;
@@ -206,6 +208,8 @@ export const translations: Record<Language, Translations> = {
       "View, add, and remove businesses on the Sikka map and directory.",
     directoryEmpty: "No businesses in the directory yet.",
     delete: "Delete",
+    deleteConfirm: "Are you sure you want to delete this business? This cannot be undone.",
+    deleteErrorAlert: "Unable to delete this business. Please try again.",
     deleteBusinessAria: "Delete",
     addBusiness: "Add Business",
     addBusinessSubtitle: "Publish a new listing to the Sikka map and directory.",
@@ -314,6 +318,8 @@ export const translations: Record<Language, Translations> = {
     directoryManagementSubtitle: "عرض الأعمال وإضافتها وإزالتها من خريطة ودليل سِكّة.",
     directoryEmpty: "لا توجد أعمال في الدليل بعد.",
     delete: "حذف",
+    deleteConfirm: "هل أنت متأكد من حذف هذا العمل؟ لا يمكن التراجع عن هذا الإجراء.",
+    deleteErrorAlert: "تعذّر حذف هذا العمل. يُرجى المحاولة مرة أخرى.",
     deleteBusinessAria: "حذف",
     addBusiness: "إضافة عمل",
     addBusinessSubtitle: "نشر قائمة جديدة على خريطة ودليل سِكّة.",

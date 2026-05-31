@@ -408,14 +408,7 @@ export default function HomePage() {
     setTimeout(() => setSubmitSuccess(false), 3000);
   };
 
-  const handleDeleteBusiness = async (id: string) => {
-    const { error } = await supabase.from("businesses").delete().eq("id", id);
-
-    if (error) {
-      console.error("Failed to delete business:", error.message);
-      return;
-    }
-
+  const handleBusinessDeleted = (id: string) => {
     if (selectedBusiness?.id === id) {
       setSelectedBusiness(null);
     }
@@ -423,8 +416,6 @@ export default function HomePage() {
     if (mapPreviewBusiness?.id === id) {
       setMapPreviewBusiness(null);
     }
-
-    await fetchBusinesses();
   };
 
   return (
@@ -499,7 +490,8 @@ export default function HomePage() {
                 authError={authError}
                 onAuth={handleAuth}
                 onSignOut={handleSignOut}
-                onDeleteBusiness={handleDeleteBusiness}
+                setBusinesses={setBusinesses}
+                onBusinessDeleted={handleBusinessDeleted}
                 newName={newName}
                 setNewName={setNewName}
                 newMainCategory={newMainCategory}

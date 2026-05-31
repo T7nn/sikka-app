@@ -7,7 +7,7 @@ import type { MainCategory } from "@/types/businessCategories";
 import type { BusinessRecord } from "@/types/business";
 import type { CurrentUser } from "@/types/user";
 import type { Translations } from "@/types/i18n";
-import type { FormEvent } from "react";
+import type { Dispatch, FormEvent, SetStateAction } from "react";
 
 interface AccountViewProps {
   currentUser: CurrentUser | null;
@@ -25,7 +25,8 @@ interface AccountViewProps {
   authError: string | null;
   onAuth: (e: FormEvent) => void;
   onSignOut: () => void;
-  onDeleteBusiness: (id: string) => Promise<void>;
+  setBusinesses: Dispatch<SetStateAction<BusinessRecord[]>>;
+  onBusinessDeleted?: (id: string) => void;
   newName: string;
   setNewName: (value: string) => void;
   newMainCategory: MainCategory;
@@ -82,7 +83,8 @@ export function AccountView({
   authError,
   onAuth,
   onSignOut,
-  onDeleteBusiness,
+  setBusinesses,
+  onBusinessDeleted,
   newName,
   setNewName,
   newMainCategory,
@@ -124,7 +126,8 @@ export function AccountView({
             businesses={businesses}
             labels={labels}
             onSignOut={onSignOut}
-            onDeleteBusiness={onDeleteBusiness}
+            setBusinesses={setBusinesses}
+            onBusinessDeleted={onBusinessDeleted}
             newName={newName}
             setNewName={setNewName}
             newMainCategory={newMainCategory}
