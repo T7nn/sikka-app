@@ -240,7 +240,7 @@ export function AccountDashboard({
 
     if (error) {
       console.error("Failed to delete business:", error.message);
-      window.alert(labels.deleteErrorAlert);
+      alert("Failed to delete: " + error.message);
       return;
     }
 
