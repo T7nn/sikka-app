@@ -10,7 +10,7 @@ export function AppHeader({ children }: AppHeaderProps) {
       <Image
         src="/logo.png"
         alt="Sikka Logo"
-        width={100}
+        width={96}
         height={40}
         priority
         className="h-auto w-24 transition-all duration-300 dark:invert"
