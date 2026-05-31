@@ -1,11 +1,21 @@
 "use client";
 
 import { Map, Marker } from "pigeon-maps";
+import { Minus, Navigation, Plus } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { businessHasMapCoordinates, type BusinessRecord } from "@/types/business";
 
 const ABU_DHABI: [number, number] = [24.4539, 54.3773];
-const DEFAULT_ZOOM = 11;
+const DEFAULT_ZOOM = 13;
+const MIN_ZOOM = 1;
+const MAX_ZOOM = 18;
+const LOCATE_ZOOM = 15;
+
+const mapControlPillClassName =
+  "pointer-events-auto absolute right-4 bottom-24 z-20 flex flex-col items-center gap-2 rounded-full bg-white/90 p-1.5 shadow-soft-airy backdrop-blur-md dark:border dark:border-white/10 dark:bg-black/90 dark:shadow-none";
+
+const mapControlButtonClassName =
+  "flex h-10 w-10 items-center justify-center rounded-full text-[#222222] transition-all hover:bg-[#F9F9F9] active:scale-95 dark:text-white dark:hover:bg-white/10";
 
 interface ExpandableMapWidgetProps {
   businesses: BusinessRecord[];
@@ -20,6 +30,7 @@ export function ExpandableMapWidget({
 }: ExpandableMapWidgetProps) {
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
   const [mapCenter, setMapCenter] = useState<[number, number]>(ABU_DHABI);
+  const [zoom, setZoom] = useState(DEFAULT_ZOOM);
   const [userLocation, setUserLocation] = useState<[number, number] | null>(null);
   const containerRef = useRef<HTMLDivElement>(null);
   const [mapHeight, setMapHeight] = useState(0);
@@ -51,7 +62,6 @@ export function ExpandableMapWidget({
           position.coords.latitude,
           position.coords.longitude,
         ];
-        setMapCenter(coords);
         setUserLocation(coords);
       },
       () => {
@@ -85,6 +95,26 @@ export function ExpandableMapWidget({
     onMapPinSelect?.(business);
   };
 
+  const handleLocateMe = () => {
+    if (!navigator.geolocation) return;
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const coords: [number, number] = [
+          position.coords.latitude,
+          position.coords.longitude,
+        ];
+        setMapCenter(coords);
+        setUserLocation(coords);
+        setZoom(LOCATE_ZOOM);
+      },
+      () => {
+        // Fail gracefully when permission is denied or unavailable.
+      },
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60_000 },
+    );
+  };
+
   const mappableBusinesses = businesses.filter((business) => businessHasMapCoordinates(business));
 
   return (
@@ -92,11 +122,15 @@ export function ExpandableMapWidget({
       {mapHeight > 0 && (
         <Map
           center={mapCenter}
-          zoom={DEFAULT_ZOOM}
+          zoom={zoom}
           height={mapHeight}
           mouseEvents
           touchEvents
           metaWheelZoom
+          onBoundsChanged={({ center, zoom: nextZoom }) => {
+            setMapCenter(center);
+            setZoom(nextZoom);
+          }}
         >
           {userLocation && (
             <Marker anchor={userLocation} width={20} style={{ pointerEvents: "none" }}>
@@ -140,6 +174,33 @@ export function ExpandableMapWidget({
           })}
         </Map>
       )}
+
+      <div className={mapControlPillClassName} role="toolbar" aria-label="Map controls">
+        <button
+          type="button"
+          aria-label="Zoom in"
+          onClick={() => setZoom((current) => Math.min(current + 1, MAX_ZOOM))}
+          className={mapControlButtonClassName}
+        >
+          <Plus size={20} strokeWidth={1.75} aria-hidden />
+        </button>
+        <button
+          type="button"
+          aria-label="Zoom out"
+          onClick={() => setZoom((current) => Math.max(current - 1, MIN_ZOOM))}
+          className={mapControlButtonClassName}
+        >
+          <Minus size={20} strokeWidth={1.75} aria-hidden />
+        </button>
+        <button
+          type="button"
+          aria-label="Locate me"
+          onClick={handleLocateMe}
+          className={mapControlButtonClassName}
+        >
+          <Navigation size={20} strokeWidth={1.75} aria-hidden />
+        </button>
+      </div>
     </div>
   );
 }
