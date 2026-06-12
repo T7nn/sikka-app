@@ -12,3 +12,56 @@
   /* Your custom soft, airy shadow from the design guidelines */
   --shadow-soft-airy: 0px 20px 40px rgba(0, 0, 0, 0.08);
 }
+
+/* MapLibre control pill — monochrome glassy aesthetic */
+.maplibregl-ctrl-group {
+  border-radius: 9999px !important;
+  overflow: hidden;
+  border: 1px solid rgba(34, 34, 34, 0.1) !important;
+  box-shadow: 0px 20px 40px rgba(0, 0, 0, 0.08) !important;
+  background: rgba(255, 255, 255, 0.9) !important;
+  backdrop-filter: blur(12px);
+}
+
+.dark .maplibregl-ctrl-group {
+  border-color: rgba(255, 255, 255, 0.1) !important;
+  background: rgba(0, 0, 0, 0.9) !important;
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl-group button {
+  border: none !important;
+  outline: none !important;
+  width: 40px !important;
+  height: 40px !important;
+  background: transparent !important;
+}
+
+.maplibregl-ctrl-group button:hover {
+  background: rgba(249, 249, 249, 1) !important;
+}
+
+.dark .maplibregl-ctrl-group button:hover {
+  background: rgba(255, 255, 255, 0.1) !important;
+}
+
+.maplibregl-ctrl-group button:focus,
+.maplibregl-ctrl-group button:focus-visible {
+  outline: none !important;
+  box-shadow: none !important;
+}
+
+.maplibregl-ctrl-geolocate-active,
+.maplibregl-ctrl-geolocate-active-error,
+.maplibregl-ctrl-geolocate-background {
+  background-color: transparent !important;
+}
+
+.maplibregl-ctrl-geolocate-active .maplibregl-ctrl-icon,
+.maplibregl-ctrl-geolocate-active-error .maplibregl-ctrl-icon {
+  filter: none !important;
+}
+
+.dark .maplibregl-ctrl-icon {
+  filter: invert(1);
+}
