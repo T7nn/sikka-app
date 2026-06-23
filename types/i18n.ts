@@ -176,6 +176,22 @@ export interface Translations {
   copied: string;
   clear: string;
   placeholderWhatsapp: string;
+  globalFilterSector: string;
+  globalFilterContextTab: string;
+  globalFilterCategory: string;
+  globalAllDirectory: string;
+  globalAllBusinesses: string;
+  globalAllServicesContext: string;
+  globalAllEvents: string;
+  categoryManagement: string;
+  categoryManagementSubtitle: string;
+  manageCategories: string;
+  addNewCategory: string;
+  newCategoryName: string;
+  saveCategory: string;
+  savingCategory: string;
+  categoriesEmpty: string;
+  categoryDeleteWarning: string;
 }
 
 export const translations: Record<Language, Translations> = {
@@ -350,6 +366,24 @@ export const translations: Record<Language, Translations> = {
     copied: "Copied",
     clear: "Clear",
     placeholderWhatsapp: "+971 50 000 0000",
+    globalFilterSector: "Sector",
+    globalFilterContextTab: "Directory",
+    globalFilterCategory: "Category",
+    globalAllDirectory: "All Directory",
+    globalAllBusinesses: "All Businesses",
+    globalAllServicesContext: "All Services",
+    globalAllEvents: "All Events",
+    categoryManagement: "Category Management",
+    categoryManagementSubtitle:
+      "View and remove registered categories across Food, Services, and Events.",
+    manageCategories: "Manage Categories",
+    addNewCategory: "Add New +",
+    newCategoryName: "New category name",
+    saveCategory: "Save Category",
+    savingCategory: "Saving…",
+    categoriesEmpty: "No categories registered for this sector yet.",
+    categoryDeleteWarning:
+      "Deleting this category will clear it from any businesses or events currently using it.",
   },
   ar: {
     home: "الرئيسية",
@@ -520,6 +554,24 @@ export const translations: Record<Language, Translations> = {
     copied: "تم النسخ",
     clear: "مسح",
     placeholderWhatsapp: "+971 50 000 0000",
+    globalFilterSector: "القطاع",
+    globalFilterContextTab: "الدليل",
+    globalFilterCategory: "الفئة",
+    globalAllDirectory: "كل الدليل",
+    globalAllBusinesses: "كل الأعمال",
+    globalAllServicesContext: "كل الخدمات",
+    globalAllEvents: "كل الفعاليات",
+    categoryManagement: "إدارة الفئات",
+    categoryManagementSubtitle:
+      "عرض وإزالة الفئات المسجّلة عبر الطعام والخدمات والفعاليات.",
+    manageCategories: "إدارة الفئات",
+    addNewCategory: "إضافة جديد +",
+    newCategoryName: "اسم الفئة الجديدة",
+    saveCategory: "حفظ الفئة",
+    savingCategory: "جارٍ الحفظ…",
+    categoriesEmpty: "لا توجد فئات مسجّلة لهذا القطاع بعد.",
+    categoryDeleteWarning:
+      "سيؤدي حذف هذه الفئة إلى إزالتها من أي أعمال أو فعاليات تستخدمها حالياً.",
   },
 };
 

@@ -3,187 +3,39 @@
 import { Loader2, Search, ShieldCheck } from "lucide-react";
 import Link from "next/link";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { DirectoryFilter } from "@/components/admin/DirectoryFilter";
+import { GlobalFilter } from "@/components/shared/GlobalFilter";
 import { SafeDeleteModal } from "@/components/account/SafeDeleteModal";
+import { filterDirectoryRowsBySearch } from "@/types/adminDirectoryQuery";
+import { buildAdminDirectoryRows } from "@/types/globalDirectoryQuery";
 import { normalizeBusiness, type BusinessRecord } from "@/types/business";
-import { resolveBusinessMainCategory } from "@/types/businessCategories";
-import {
-  DIRECTORY_ALL_CATEGORY,
-  DIRECTORY_ALL_TYPES,
-  filterDirectoryRowsBySearch,
-  type AdminDirectoryRow,
-  type DirectorySector,
-} from "@/types/adminDirectoryQuery";
 import { getAffectedDirectoryItems, type DirectoryDeleteTarget } from "@/types/directoryDelete";
 import { normalizeEvent, type EventRecord } from "@/types/event";
 import {
   getActivityLabel,
-  getCatalogCategoryLabel,
   getEventSubTypeLabel,
   translations,
   type Language,
   type Translations,
 } from "@/types/i18n";
+import {
+  getDefaultGlobalFilter,
+  resolveGlobalFilter,
+  type CategoryRecord,
+  type GlobalFilterState,
+} from "@/types/taxonomy";
+import { fetchAllCategories } from "@/utils/categoryRepository";
 import { supabase } from "@/utils/supabase";
 import { ui } from "@/utils/ui";
-
-function formatDirectoryCategory(business: BusinessRecord, labels: Translations): string {
-  return getCatalogCategoryLabel(resolveBusinessMainCategory(business), labels);
-}
-
-function businessRowsFromRecords(
-  businesses: BusinessRecord[],
-  labels: Translations,
-): AdminDirectoryRow[] {
-  return businesses.map((business) => ({
-    kind: "store",
-    id: business.id,
-    name: business.name,
-    description: business.description,
-    sectorLabel: formatDirectoryCategory(business, labels),
-    categoryTags: business.activities ?? [],
-    business,
-  }));
-}
-
-function activityRowsFromBusinesses(
-  businesses: BusinessRecord[],
-  sector: DirectorySector,
-): AdminDirectoryRow[] {
-  const names = new Set<string>();
-
-  for (const business of businesses) {
-    for (const activity of business.activities ?? []) {
-      const trimmed = activity.trim();
-      if (trimmed) names.add(trimmed);
-    }
-  }
-
-  return [...names].sort().map((name) => ({
-    kind: "activity",
-    name,
-    sector,
-  }));
-}
-
-function eventRowsFromRecords(events: EventRecord[]): AdminDirectoryRow[] {
-  return events.map((event) => ({
-    kind: "event",
-    id: event.id,
-    name: event.name,
-    description: event.description,
-    eventType: event.event_type ?? null,
-    eventCategory: event.category ?? null,
-    startDate: event.start_date,
-    endDate: event.end_date,
-    openTime: event.open_time,
-    closeTime: event.close_time,
-    event,
-  }));
-}
-
-async function fetchEventsDirectory(
-  activeType: string,
-  activeCategory: string,
-): Promise<AdminDirectoryRow[]> {
-  let query = supabase.from("events").select("*");
-
-  if (activeType !== DIRECTORY_ALL_TYPES) {
-    query = query.eq("event_type", activeType);
-  }
-
-  if (activeCategory !== DIRECTORY_ALL_CATEGORY) {
-    query = query.eq("category", activeCategory);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Failed to fetch events:", error.message);
-
-    const { data: fallbackData, error: fallbackError } = await supabase
-      .from("events")
-      .select("*");
-
-    if (fallbackError) {
-      console.error("Failed to fetch events fallback:", fallbackError.message);
-      return [];
-    }
-
-    let events = (fallbackData ?? [])
-      .map((row) => normalizeEvent(row as Record<string, unknown>))
-      .filter((event): event is EventRecord => event !== null);
-
-    if (activeType !== DIRECTORY_ALL_TYPES) {
-      events = events.filter((event) => event.event_type === activeType);
-    }
-
-    if (activeCategory !== DIRECTORY_ALL_CATEGORY) {
-      events = events.filter(
-        (event) =>
-          event.category === activeCategory ||
-          event.event_type === activeCategory ||
-          `${event.name} ${event.description}`.toLowerCase().includes(activeCategory.toLowerCase()),
-      );
-    }
-
-    return eventRowsFromRecords(events);
-  }
-
-  const events = (data ?? [])
-    .map((row) => normalizeEvent(row as Record<string, unknown>))
-    .filter((event): event is EventRecord => event !== null);
-
-  return eventRowsFromRecords(events);
-}
-
-async function fetchBusinessDirectory(
-  sector: DirectorySector,
-  activeType: string,
-  activeCategory: string,
-  labels: Translations,
-): Promise<AdminDirectoryRow[]> {
-  let query = supabase.from("businesses").select("*").eq("main_category", sector);
-
-  if (activeCategory !== DIRECTORY_ALL_CATEGORY) {
-    query = query.contains("activities", [activeCategory]);
-  }
-
-  const { data, error } = await query;
-
-  if (error) {
-    console.error("Failed to fetch businesses:", error.message);
-    return [];
-  }
-
-  const businesses = (data ?? [])
-    .map((row) => normalizeBusiness(row as Record<string, unknown>))
-    .filter((business): business is BusinessRecord => business !== null);
-
-  if (activeType === "Activities") {
-    return activityRowsFromBusinesses(businesses, sector);
-  }
-
-  if (activeType === "Stores") {
-    return businessRowsFromRecords(businesses, labels);
-  }
-
-  const storeRows = businessRowsFromRecords(businesses, labels);
-  const activityRows = activityRowsFromBusinesses(businesses, sector);
-  return [...storeRows, ...activityRows];
-}
 
 export default function AdminDirectoryPage() {
   const [language] = useState<Language>("en");
   const labels = translations[language];
 
-  const [activeSector, setActiveSector] = useState<DirectorySector>("Food");
-  const [activeType, setActiveType] = useState(DIRECTORY_ALL_TYPES);
-  const [activeCategory, setActiveCategory] = useState(DIRECTORY_ALL_CATEGORY);
-
+  const [globalFilter, setGlobalFilter] = useState<GlobalFilterState>(getDefaultGlobalFilter());
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [directorySearch, setDirectorySearch] = useState("");
-  const [directoryRows, setDirectoryRows] = useState<AdminDirectoryRow[]>([]);
-  const [businessesCache, setBusinessesCache] = useState<BusinessRecord[]>([]);
   const [isLoading, setIsLoading] = useState(true);
 
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
@@ -194,43 +46,45 @@ export default function AdminDirectoryPage() {
     setIsLoading(true);
 
     try {
-      if (activeSector === "Events") {
-        const rows = await fetchEventsDirectory(activeType, activeCategory);
-        setDirectoryRows(rows);
-        return;
-      }
+      const [categoryRows, businessResult, eventResult] = await Promise.all([
+        fetchAllCategories(),
+        supabase.from("businesses").select("*"),
+        supabase.from("events").select("*"),
+      ]);
 
-      const rows = await fetchBusinessDirectory(
-        activeSector,
-        activeType,
-        activeCategory,
-        labels,
-      );
-      setDirectoryRows(rows);
+      setCategories(categoryRows);
 
-      const { data } = await supabase.from("businesses").select("*");
-      const businesses = (data ?? [])
+      const normalizedBusinesses = (businessResult.data ?? [])
         .map((row) => normalizeBusiness(row as Record<string, unknown>))
         .filter((business): business is BusinessRecord => business !== null);
-      setBusinessesCache(businesses);
+
+      const normalizedEvents = (eventResult.data ?? [])
+        .map((row) => normalizeEvent(row as Record<string, unknown>))
+        .filter((event): event is EventRecord => event !== null);
+
+      setBusinesses(normalizedBusinesses);
+      setEvents(normalizedEvents);
     } finally {
       setIsLoading(false);
     }
-  }, [activeSector, activeType, activeCategory, labels]);
+  }, []);
 
   useEffect(() => {
     void loadDirectory();
   }, [loadDirectory]);
 
-  const handleFilterChange = (
-    sector: DirectorySector,
-    type: string,
+  const handleGlobalFilterChange = (
+    sector: GlobalFilterState["sector"],
+    contextTab: string,
     category: string,
   ) => {
-    setActiveSector(sector);
-    setActiveType(type);
-    setActiveCategory(category);
+    setGlobalFilter(resolveGlobalFilter(sector, contextTab, category));
   };
+
+  const directoryRows = useMemo(
+    () => buildAdminDirectoryRows(businesses, events, globalFilter, labels),
+    [businesses, events, globalFilter, labels],
+  );
 
   const visibleRows = useMemo(
     () => filterDirectoryRowsBySearch(directoryRows, directorySearch),
@@ -239,7 +93,7 @@ export default function AdminDirectoryPage() {
 
   const openDeleteModal = (target: DirectoryDeleteTarget) => {
     setItemToDelete(target);
-    setAffectedItemsList(getAffectedDirectoryItems(target, businessesCache));
+    setAffectedItemsList(getAffectedDirectoryItems(target, businesses));
     setIsDeleteModalOpen(true);
   };
 
@@ -268,7 +122,7 @@ export default function AdminDirectoryPage() {
       }
     } else {
       const normalizedActivity = itemToDelete.name.trim().toLowerCase();
-      const affected = businessesCache.filter((business) =>
+      const affected = businesses.filter((business) =>
         (business.activities ?? []).some(
           (activity) => activity.trim().toLowerCase() === normalizedActivity,
         ),
@@ -305,6 +159,12 @@ export default function AdminDirectoryPage() {
         >
           ← {labels.home}
         </Link>
+        <Link
+          href="/admin/categories"
+          className="rounded-full border border-[#222222]/15 px-4 py-2 font-sans text-[10px] font-medium uppercase tracking-wide text-[#222222] transition-colors hover:bg-[#F9F9F9] dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+        >
+          {labels.manageCategories}
+        </Link>
       </div>
 
       <section className={`relative p-6 ${ui.card}`}>
@@ -340,12 +200,15 @@ export default function AdminDirectoryPage() {
         </div>
 
         <div className="relative z-20 mt-5">
-          <DirectoryFilter
+          <GlobalFilter
             labels={labels}
-            activeSector={activeSector}
-            activeType={activeType}
-            activeCategory={activeCategory}
-            onFilterChange={handleFilterChange}
+            categories={categories}
+            activeSector={globalFilter.sector}
+            activeContextTab={globalFilter.contextTab}
+            activeCategory={globalFilter.category}
+            onFilterChange={handleGlobalFilterChange}
+            layout="stacked"
+            layoutIdPrefix="admin-directory"
           />
         </div>
 

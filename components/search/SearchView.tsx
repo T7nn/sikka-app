@@ -2,10 +2,11 @@
 
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
-import { CategoryFilter } from "@/components/home/CategoryFilter";
+import { GlobalFilter } from "@/components/shared/GlobalFilter";
 import { BusinessCard } from "@/components/search/BusinessCard";
 import type { BusinessRecord } from "@/types/business";
-import { buildSearchResults, type MapViewFilter } from "@/types/businessCategories";
+import { buildGlobalSearchResults } from "@/types/taxonomy";
+import type { CategoryRecord, GlobalFilterState } from "@/types/taxonomy";
 import type { EventRecord } from "@/types/event";
 import { getEventSubTypeLabel, type Translations } from "@/types/i18n";
 import { ui } from "@/utils/ui";
@@ -13,10 +14,9 @@ import { ui } from "@/utils/ui";
 interface SearchViewProps {
   businesses: BusinessRecord[];
   events: EventRecord[];
-  activeMapFilter: MapViewFilter;
-  activeSubTypeFilter: string;
-  onMapFilterChange: (filter: MapViewFilter) => void;
-  onSubTypeFilterChange: (subType: string) => void;
+  categories: CategoryRecord[];
+  globalFilter: GlobalFilterState;
+  onGlobalFilterChange: (sector: GlobalFilterState["sector"], contextTab: string, category: string) => void;
   onBusinessSelect: (business: BusinessRecord) => void;
   labels: Translations;
 }
@@ -24,18 +24,17 @@ interface SearchViewProps {
 export function SearchView({
   businesses,
   events,
-  activeMapFilter,
-  activeSubTypeFilter,
-  onMapFilterChange,
-  onSubTypeFilterChange,
+  categories,
+  globalFilter,
+  onGlobalFilterChange,
   onBusinessSelect,
   labels,
 }: SearchViewProps) {
   const [query, setQuery] = useState("");
 
   const searchResults = useMemo(
-    () => buildSearchResults(businesses, events, activeMapFilter, activeSubTypeFilter, query),
-    [businesses, events, activeMapFilter, activeSubTypeFilter, query],
+    () => buildGlobalSearchResults(businesses, events, globalFilter, query),
+    [businesses, events, globalFilter, query],
   );
 
   return (
@@ -57,14 +56,15 @@ export function SearchView({
         />
       </div>
 
-      <CategoryFilter
-        activeFilter={activeMapFilter}
-        activeSubType={activeSubTypeFilter}
-        onFilterChange={onMapFilterChange}
-        onSubTypeChange={onSubTypeFilterChange}
-        businesses={businesses}
+      <GlobalFilter
         labels={labels}
+        categories={categories}
+        activeSector={globalFilter.sector}
+        activeContextTab={globalFilter.contextTab}
+        activeCategory={globalFilter.category}
+        onFilterChange={onGlobalFilterChange}
         layout="inline"
+        layoutIdPrefix="search"
       />
 
       <ul className="flex flex-col gap-5 pb-4">

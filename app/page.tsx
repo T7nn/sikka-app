@@ -12,16 +12,17 @@ import { HomeView } from "@/components/home/HomeView";
 import { SearchView } from "@/components/search/SearchView";
 import { BottomTabBar, type TabId } from "@/components/navigation/BottomTabBar";
 import { normalizeBusiness, type BusinessRecord } from "@/types/business";
-import {
-  filterBusinessesForMapView,
-  filterEventsForMapView,
-  buildActivitiesPayload,
-  getActivitiesForMainCategory,
-  getDefaultSubTypeFilter,
-  type MainCategory,
-  type MapViewFilter,
-} from "@/types/businessCategories";
+import { type MainCategory } from "@/types/businessCategories";
 import { normalizeEvent, type EventRecord } from "@/types/event";
+import {
+  filterBusinessesForGlobalFilter,
+  filterEventsForGlobalFilter,
+  getDefaultGlobalFilter,
+  resolveGlobalFilter,
+  type CategoryRecord,
+  type GlobalFilterState,
+} from "@/types/taxonomy";
+import { fetchAllCategories } from "@/utils/categoryRepository";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { parseManualCoordinates } from "@/utils/mapHelpers";
 import { verifyAccessKey } from "@/actions/verify-access-key";
@@ -49,20 +50,14 @@ export default function HomePage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
-  const [activeMapFilter, setActiveMapFilter] = useState<MapViewFilter>("All");
-  const [activeSubTypeFilter, setActiveSubTypeFilter] = useState(
-    getDefaultSubTypeFilter("All"),
-  );
+  const [categories, setCategories] = useState<CategoryRecord[]>([]);
+  const [globalFilter, setGlobalFilter] = useState<GlobalFilterState>(getDefaultGlobalFilter());
   const [mapPreviewBusiness, setMapPreviewBusiness] = useState<BusinessRecord | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
 
   const [newName, setNewName] = useState("");
   const [newMainCategory, setNewMainCategory] = useState<MainCategory>("Food");
-  const [selectedActivities, setSelectedActivities] = useState<Record<string, boolean>>(
-    {},
-  );
-  const [otherActivityEnabled, setOtherActivityEnabled] = useState(false);
-  const [otherActivityText, setOtherActivityText] = useState("");
+  const [businessCategories, setBusinessCategories] = useState<string[]>([]);
   const [newDescription, setNewDescription] = useState("");
   const [hasPhysicalLocation, setHasPhysicalLocation] = useState(true);
   const [newGoogleMapsUrl, setNewGoogleMapsUrl] = useState("");
@@ -126,12 +121,27 @@ export default function HomePage() {
   }, []);
 
   const refreshDirectoryData = useCallback(async () => {
-    await Promise.all([fetchBusinesses(), fetchEvents()]);
+    await Promise.all([fetchBusinesses(), fetchEvents(), fetchAllCategories().then(setCategories)]);
   }, [fetchBusinesses, fetchEvents]);
 
   useEffect(() => {
     void refreshDirectoryData();
   }, [refreshDirectoryData]);
+
+  const handleGlobalFilterChange = (
+    sector: GlobalFilterState["sector"],
+    contextTab: string,
+    category: string,
+  ) => {
+    setGlobalFilter(resolveGlobalFilter(sector, contextTab, category));
+  };
+
+  const handleCategoryCreated = (category: CategoryRecord) => {
+    setCategories((current) => {
+      if (current.some((item) => item.id === category.id)) return current;
+      return [...current, category].sort((a, b) => a.name.localeCompare(b.name));
+    });
+  };
 
   const applyAuthSession = useCallback((userEmail: string) => {
     setCurrentUser({ email: userEmail, role: "admin" });
@@ -158,19 +168,14 @@ export default function HomePage() {
   }, [applyAuthSession]);
 
   const mapFilteredBusinesses = useMemo(
-    () => filterBusinessesForMapView(businesses, activeMapFilter, activeSubTypeFilter),
-    [businesses, activeMapFilter, activeSubTypeFilter],
+    () => filterBusinessesForGlobalFilter(businesses, globalFilter),
+    [businesses, globalFilter],
   );
 
   const mapFilteredEvents = useMemo(
-    () => filterEventsForMapView(events, activeMapFilter, activeSubTypeFilter),
-    [events, activeMapFilter, activeSubTypeFilter],
+    () => filterEventsForGlobalFilter(events, globalFilter),
+    [events, globalFilter],
   );
-
-  const handleMapFilterChange = (filter: MapViewFilter) => {
-    setActiveMapFilter(filter);
-    setActiveSubTypeFilter(getDefaultSubTypeFilter(filter));
-  };
 
   const handleMapPinSelect = (business: BusinessRecord) => {
     setMapPreviewBusiness(business);
@@ -300,9 +305,7 @@ export default function HomePage() {
     clearLogoSelection();
     setNewName("");
     setNewMainCategory("Food");
-    setSelectedActivities({});
-    setOtherActivityEnabled(false);
-    setOtherActivityText("");
+    setBusinessCategories([]);
     setNewDescription("");
     setHasPhysicalLocation(true);
     setNewGoogleMapsUrl("");
@@ -391,15 +394,7 @@ export default function HomePage() {
       }
     }
 
-    const predefinedActivities = getActivitiesForMainCategory(newMainCategory);
-    const activities = buildActivitiesPayload(
-      selectedActivities,
-      predefinedActivities,
-      otherActivityEnabled,
-      otherActivityText,
-    );
-
-    if (activities.length === 0) {
+    if (businessCategories.length === 0) {
       setPublishError(t.publishErrorSelectActivity);
       return;
     }
@@ -416,7 +411,7 @@ export default function HomePage() {
       name: newName.trim(),
       type: businessType,
       main_category: newMainCategory,
-      activities,
+      activities: businessCategories,
       description: newDescription.trim(),
       google_maps_url: googleMapsUrl,
       latitude,
@@ -472,7 +467,7 @@ export default function HomePage() {
         className={`relative flex min-h-0 flex-1 flex-col bg-white dark:bg-black ${
           activeTab === "home"
             ? "overflow-hidden px-0 pb-0"
-            : "px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"
+            : "px-6 pb-[calc(5rem+env(safe-area-inset-bottom))]"
         }`}
         aria-label={`${tabLabels[activeTab]} view`}
       >
@@ -486,11 +481,9 @@ export default function HomePage() {
               <HomeView
                 businesses={mapFilteredBusinesses}
                 events={mapFilteredEvents}
-                allBusinesses={businesses}
-                activeMapFilter={activeMapFilter}
-                activeSubTypeFilter={activeSubTypeFilter}
-                onMapFilterChange={handleMapFilterChange}
-                onSubTypeFilterChange={setActiveSubTypeFilter}
+                categories={categories}
+                globalFilter={globalFilter}
+                onGlobalFilterChange={handleGlobalFilterChange}
                 mapPreviewBusiness={mapPreviewBusiness}
                 onMapPinSelect={handleMapPinSelect}
                 labels={t}
@@ -503,10 +496,9 @@ export default function HomePage() {
               <SearchView
                 businesses={businesses}
                 events={events}
-                activeMapFilter={activeMapFilter}
-                activeSubTypeFilter={activeSubTypeFilter}
-                onMapFilterChange={handleMapFilterChange}
-                onSubTypeFilterChange={setActiveSubTypeFilter}
+                categories={categories}
+                globalFilter={globalFilter}
+                onGlobalFilterChange={handleGlobalFilterChange}
                 onBusinessSelect={handleOpenBusinessDetails}
                 labels={t}
               />
@@ -540,21 +532,12 @@ export default function HomePage() {
                 newMainCategory={newMainCategory}
                 onMainCategoryChange={(category: MainCategory) => {
                   setNewMainCategory(category);
-                  setSelectedActivities({});
-                  setOtherActivityEnabled(false);
-                  setOtherActivityText("");
+                  setBusinessCategories([]);
                 }}
-                selectedActivities={selectedActivities}
-                onActivityToggle={(activity: string) => {
-                  setSelectedActivities((prev) => ({
-                    ...prev,
-                    [activity]: !prev[activity],
-                  }));
-                }}
-                otherActivityEnabled={otherActivityEnabled}
-                setOtherActivityEnabled={setOtherActivityEnabled}
-                otherActivityText={otherActivityText}
-                setOtherActivityText={setOtherActivityText}
+                businessCategories={businessCategories}
+                setBusinessCategories={setBusinessCategories}
+                categories={categories}
+                onCategoryCreated={handleCategoryCreated}
                 newDescription={newDescription}
                 setNewDescription={setNewDescription}
                 hasPhysicalLocation={hasPhysicalLocation}

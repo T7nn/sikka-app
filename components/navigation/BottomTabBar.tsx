@@ -26,9 +26,10 @@ export function BottomTabBar({ activeTab, onTabChange, tabLabels }: BottomTabBar
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white px-5 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-soft-airy dark:border-t dark:border-white/10 dark:bg-black dark:shadow-none"
+      className="fixed bottom-0 left-0 right-0 z-50 border-t border-[#222222]/10 bg-white pt-3 shadow-soft-airy dark:border-white/10 dark:bg-black dark:shadow-none"
+      style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
     >
-      <ul className="mx-auto flex max-w-md items-stretch gap-2">
+      <ul className="mx-auto flex max-w-md items-stretch gap-2 px-5 pb-3">
         {TABS.map((tab) => {
           const isActive = activeTab === tab.id;
           const Icon = tab.icon;

@@ -6,6 +6,7 @@ import { AuthGateway } from "@/components/account/AuthGateway";
 import type { MainCategory } from "@/types/businessCategories";
 import type { EventRecord } from "@/types/event";
 import type { BusinessRecord } from "@/types/business";
+import type { CategoryRecord } from "@/types/taxonomy";
 import type { CurrentUser } from "@/types/user";
 import type { Translations } from "@/types/i18n";
 import type { Dispatch, FormEvent, SetStateAction } from "react";
@@ -34,12 +35,10 @@ interface AccountViewProps {
   setNewName: (value: string) => void;
   newMainCategory: MainCategory;
   onMainCategoryChange: (category: MainCategory) => void;
-  selectedActivities: Record<string, boolean>;
-  onActivityToggle: (activity: string) => void;
-  otherActivityEnabled: boolean;
-  setOtherActivityEnabled: (value: boolean) => void;
-  otherActivityText: string;
-  setOtherActivityText: (value: string) => void;
+  businessCategories: string[];
+  setBusinessCategories: (value: string[]) => void;
+  categories: CategoryRecord[];
+  onCategoryCreated: (category: CategoryRecord) => void;
   newDescription: string;
   setNewDescription: (value: string) => void;
   hasPhysicalLocation: boolean;
@@ -102,12 +101,10 @@ export function AccountView({
   setNewName,
   newMainCategory,
   onMainCategoryChange,
-  selectedActivities,
-  onActivityToggle,
-  otherActivityEnabled,
-  setOtherActivityEnabled,
-  otherActivityText,
-  setOtherActivityText,
+  businessCategories,
+  setBusinessCategories,
+  categories,
+  onCategoryCreated,
   newDescription,
   setNewDescription,
   hasPhysicalLocation,
@@ -155,12 +152,10 @@ export function AccountView({
             setNewName={setNewName}
             newMainCategory={newMainCategory}
             onMainCategoryChange={onMainCategoryChange}
-            selectedActivities={selectedActivities}
-            onActivityToggle={onActivityToggle}
-            otherActivityEnabled={otherActivityEnabled}
-            setOtherActivityEnabled={setOtherActivityEnabled}
-            otherActivityText={otherActivityText}
-            setOtherActivityText={setOtherActivityText}
+            businessCategories={businessCategories}
+            setBusinessCategories={setBusinessCategories}
+            categories={categories}
+            onCategoryCreated={onCategoryCreated}
             newDescription={newDescription}
             setNewDescription={setNewDescription}
             hasPhysicalLocation={hasPhysicalLocation}

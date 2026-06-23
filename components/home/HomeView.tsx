@@ -1,20 +1,18 @@
 "use client";
 
-import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { ExpandableMapWidget } from "@/components/home/ExpandableMapWidget";
+import { GlobalFilter } from "@/components/shared/GlobalFilter";
 import type { BusinessRecord } from "@/types/business";
-import type { MapViewFilter } from "@/types/businessCategories";
 import type { EventRecord } from "@/types/event";
+import type { CategoryRecord, GlobalFilterState } from "@/types/taxonomy";
 import type { Translations } from "@/types/i18n";
 
 interface HomeViewProps {
   businesses: BusinessRecord[];
   events: EventRecord[];
-  activeMapFilter: MapViewFilter;
-  activeSubTypeFilter: string;
-  onMapFilterChange: (filter: MapViewFilter) => void;
-  onSubTypeFilterChange: (subType: string) => void;
-  allBusinesses: BusinessRecord[];
+  categories: CategoryRecord[];
+  globalFilter: GlobalFilterState;
+  onGlobalFilterChange: (sector: GlobalFilterState["sector"], contextTab: string, category: string) => void;
   mapPreviewBusiness: BusinessRecord | null;
   onMapPinSelect: (business: BusinessRecord) => void;
   labels: Translations;
@@ -23,17 +21,15 @@ interface HomeViewProps {
 export function HomeView({
   businesses,
   events,
-  activeMapFilter,
-  activeSubTypeFilter,
-  onMapFilterChange,
-  onSubTypeFilterChange,
-  allBusinesses,
+  categories,
+  globalFilter,
+  onGlobalFilterChange,
   mapPreviewBusiness,
   onMapPinSelect,
   labels,
 }: HomeViewProps) {
   return (
-    <div className="fixed inset-x-0 top-16 bottom-20 z-0">
+    <div className="fixed inset-x-0 top-16 bottom-[calc(4.75rem+env(safe-area-inset-bottom))] z-0">
       <ExpandableMapWidget
         businesses={businesses}
         events={events}
@@ -41,14 +37,15 @@ export function HomeView({
         onMapPinSelect={onMapPinSelect}
       />
 
-      <CategoryFilter
-        activeFilter={activeMapFilter}
-        activeSubType={activeSubTypeFilter}
-        onFilterChange={onMapFilterChange}
-        onSubTypeChange={onSubTypeFilterChange}
-        businesses={allBusinesses}
+      <GlobalFilter
         labels={labels}
+        categories={categories}
+        activeSector={globalFilter.sector}
+        activeContextTab={globalFilter.contextTab}
+        activeCategory={globalFilter.category}
+        onFilterChange={onGlobalFilterChange}
         layout="overlay"
+        layoutIdPrefix="home"
       />
     </div>
   );

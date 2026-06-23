@@ -2,27 +2,19 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy, ImagePlus, KeyRound, Search, ShieldCheck, X } from "lucide-react";
+import Link from "next/link";
 import { useEffect, useId, useMemo, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { EventDateRangePicker } from "@/components/account/EventDateRangePicker";
 import { MapsLocationInput } from "@/components/account/MapsLocationInput";
 import { SafeDeleteModal } from "@/components/account/SafeDeleteModal";
-import { DirectoryFilter } from "@/components/admin/DirectoryFilter";
-import {
-  DIRECTORY_ALL_CATEGORY,
-  DIRECTORY_ALL_TYPES,
-  type DirectorySector,
-} from "@/types/adminDirectoryQuery";
-import {
-  DIRECTORY_SUBTYPE_ALL,
-  filterDirectoryList,
-  type DirectoryEntityType,
-  type DirectoryPrimaryFilter,
-} from "@/types/adminDirectoryFilters";
+import { GlobalFilter } from "@/components/shared/GlobalFilter";
+import { CreatableCategorySelect, CreatableMultiCategorySelect } from "@/components/shared/CreatableCategorySelect";
+import { filterDirectoryRowsBySearch } from "@/types/adminDirectoryQuery";
+import { buildAdminDirectoryRows } from "@/types/globalDirectoryQuery";
 import type { BusinessRecord } from "@/types/business";
 import {
   EVENT_SUB_TYPES,
-  getActivitiesForMainCategory,
   MAIN_CATEGORIES,
   resolveBusinessMainCategory,
   type MainCategory,
@@ -32,6 +24,12 @@ import {
   type DirectoryDeleteTarget,
 } from "@/types/directoryDelete";
 import type { EventRecord } from "@/types/event";
+import {
+  getDefaultGlobalFilter,
+  resolveGlobalFilter,
+  type CategoryRecord,
+  type GlobalFilterState,
+} from "@/types/taxonomy";
 import type { CurrentUser } from "@/types/user";
 import {
   getActivityLabel,
@@ -123,12 +121,10 @@ interface AccountDashboardProps {
   setNewName: (value: string) => void;
   newMainCategory: MainCategory;
   onMainCategoryChange: (category: MainCategory) => void;
-  selectedActivities: Record<string, boolean>;
-  onActivityToggle: (activity: string) => void;
-  otherActivityEnabled: boolean;
-  setOtherActivityEnabled: (value: boolean) => void;
-  otherActivityText: string;
-  setOtherActivityText: (value: string) => void;
+  businessCategories: string[];
+  setBusinessCategories: (value: string[]) => void;
+  categories: CategoryRecord[];
+  onCategoryCreated: (category: CategoryRecord) => void;
   newDescription: string;
   setNewDescription: (value: string) => void;
   hasPhysicalLocation: boolean;
@@ -173,12 +169,10 @@ export function AccountDashboard({
   setNewName,
   newMainCategory,
   onMainCategoryChange,
-  selectedActivities,
-  onActivityToggle,
-  otherActivityEnabled,
-  setOtherActivityEnabled,
-  otherActivityText,
-  setOtherActivityText,
+  businessCategories,
+  setBusinessCategories,
+  categories,
+  onCategoryCreated,
   newDescription,
   setNewDescription,
   hasPhysicalLocation,
@@ -210,10 +204,8 @@ export function AccountDashboard({
   onDirectoryRefresh,
 }: AccountDashboardProps) {
   const logoInputId = useId();
-  const otherActivityInputId = useId();
   const hasPhysicalLocationId = useId();
   const isPublishBusy = isExtractingLocation || isSubmitting || isUploadingLogo;
-  const categoryActivities = getActivitiesForMainCategory(newMainCategory);
 
   const [inviteeEmail, setInviteeEmail] = useState("");
   const [generatedKey, setGeneratedKey] = useState<string | null>(null);
@@ -238,12 +230,7 @@ export function AccountDashboard({
   const [eventPublishError, setEventPublishError] = useState<string | null>(null);
   const [eventSubmitSuccess, setEventSubmitSuccess] = useState(false);
 
-  const [activeSector, setActiveSector] = useState<DirectorySector>("Food");
-  const [activeType, setActiveType] = useState(DIRECTORY_ALL_TYPES);
-  const [activeCategory, setActiveCategory] = useState(DIRECTORY_ALL_CATEGORY);
-  const [primaryFilter, setPrimaryFilter] = useState<DirectoryPrimaryFilter>("Food");
-  const [entityType, setEntityType] = useState<DirectoryEntityType>("Store");
-  const [subType, setSubType] = useState(DIRECTORY_SUBTYPE_ALL);
+  const [globalFilter, setGlobalFilter] = useState<GlobalFilterState>(getDefaultGlobalFilter());
   const [directorySearch, setDirectorySearch] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<DirectoryDeleteTarget | null>(null);
@@ -253,54 +240,22 @@ export function AccountDashboard({
     void onDirectoryRefresh?.();
   }, [onDirectoryRefresh]);
 
-  const filteredDirectoryItems = useMemo(
-    () =>
-      filterDirectoryList(
-        businesses,
-        events,
-        primaryFilter,
-        entityType,
-        subType,
-        directorySearch,
-      ),
-    [businesses, events, primaryFilter, entityType, subType, directorySearch],
+  const directoryRows = useMemo(
+    () => buildAdminDirectoryRows(businesses, events, globalFilter, labels),
+    [businesses, events, globalFilter, labels],
   );
 
-  const mapSectorFilters = (
-    sector: DirectorySector,
-    type: string,
-    category: string,
-  ): {
-    primary: DirectoryPrimaryFilter;
-    entity: DirectoryEntityType;
-    sub: string;
-  } => {
-    const sub = category === DIRECTORY_ALL_CATEGORY ? DIRECTORY_SUBTYPE_ALL : category;
+  const filteredDirectoryItems = useMemo(
+    () => filterDirectoryRowsBySearch(directoryRows, directorySearch),
+    [directoryRows, directorySearch],
+  );
 
-    if (sector === "Events") {
-      return { primary: sector, entity: "Event", sub };
-    }
-
-    if (type === "Activities") {
-      return { primary: sector, entity: "Activity", sub };
-    }
-
-    return { primary: sector, entity: "Store", sub };
-  };
-
-  const handleFilterChange = (
-    sector: DirectorySector,
-    type: string,
+  const handleGlobalFilterChange = (
+    sector: GlobalFilterState["sector"],
+    contextTab: string,
     category: string,
   ) => {
-    setActiveSector(sector);
-    setActiveType(type);
-    setActiveCategory(category);
-
-    const mapped = mapSectorFilters(sector, type, category);
-    setPrimaryFilter(mapped.primary);
-    setEntityType(mapped.entity);
-    setSubType(mapped.sub);
+    setGlobalFilter(resolveGlobalFilter(sector, contextTab, category));
   };
 
   const handleLogoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -501,6 +456,7 @@ export function AccountDashboard({
       name: eventName.trim(),
       description: eventDescription.trim(),
       event_type: eventType,
+      category: eventType,
       google_maps_url: eventGoogleMapsUrl.trim() || null,
       latitude,
       longitude,
@@ -559,6 +515,20 @@ export function AccountDashboard({
             <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
               {labels.directoryManagementSubtitle}
             </p>
+            <div className="mt-4 flex flex-wrap gap-2">
+              <Link
+                href="/admin/directory"
+                className="rounded-full border border-[#222222]/15 px-4 py-2 font-sans text-[10px] font-medium uppercase tracking-wide text-[#222222] transition-colors hover:bg-[#F9F9F9] dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+              >
+                {labels.directoryManagement}
+              </Link>
+              <Link
+                href="/admin/categories"
+                className="rounded-full border border-[#222222]/15 px-4 py-2 font-sans text-[10px] font-medium uppercase tracking-wide text-[#222222] transition-colors hover:bg-[#F9F9F9] dark:border-white/10 dark:text-white dark:hover:bg-white/10"
+              >
+                {labels.manageCategories}
+              </Link>
+            </div>
           </div>
         </div>
 
@@ -579,13 +549,16 @@ export function AccountDashboard({
           />
         </div>
 
-        <div className="mt-5">
-          <DirectoryFilter
+        <div className="relative z-20 mt-5">
+          <GlobalFilter
             labels={labels}
-            activeSector={activeSector}
-            activeType={activeType}
-            activeCategory={activeCategory}
-            onFilterChange={handleFilterChange}
+            categories={categories}
+            activeSector={globalFilter.sector}
+            activeContextTab={globalFilter.contextTab}
+            activeCategory={globalFilter.category}
+            onFilterChange={handleGlobalFilterChange}
+            layout="stacked"
+            layoutIdPrefix="account-directory"
           />
         </div>
 
@@ -833,42 +806,17 @@ export function AccountDashboard({
             </div>
           </fieldset>
 
-          <fieldset className="block rounded-[32px] border border-[#222222]/10 bg-white px-4 py-4 dark:border-white/10 dark:bg-black">
-            <legend className={`${fieldLabelClassName} px-1`}>{labels.activities}</legend>
-            <div className="flex flex-col gap-1">
-              {categoryActivities.map((activity) => (
-                <ActivityCheckbox
-                  key={activity}
-                  id={`activity-${activity}`}
-                  label={getActivityLabel(activity, labels)}
-                  checked={Boolean(selectedActivities[activity])}
-                  disabled={isPublishBusy}
-                  onChange={() => onActivityToggle(activity)}
-                />
-              ))}
-              <ActivityCheckbox
-                id="activity-other"
-                label={labels.activityOther}
-                checked={otherActivityEnabled}
-                disabled={isPublishBusy}
-                onChange={() => setOtherActivityEnabled(!otherActivityEnabled)}
-              />
-              {otherActivityEnabled && (
-                <label className="mt-2 block ps-8">
-                  <span className="sr-only">{labels.customActivity}</span>
-                  <input
-                    id={otherActivityInputId}
-                    type="text"
-                    value={otherActivityText}
-                    onChange={(e) => setOtherActivityText(e.target.value)}
-                    placeholder={labels.activityOtherPlaceholder}
-                    disabled={isPublishBusy}
-                    className={dashboardInputClassName}
-                  />
-                </label>
-              )}
-            </div>
-          </fieldset>
+          <CreatableMultiCategorySelect
+            sector={newMainCategory}
+            categories={categories}
+            values={businessCategories}
+            onChange={setBusinessCategories}
+            onCategoryCreated={onCategoryCreated}
+            labels={labels}
+            disabled={isPublishBusy}
+            fieldLabel={labels.activities}
+            getOptionLabel={(name) => getActivityLabel(name, labels)}
+          />
 
           <ActivityCheckbox
             id={hasPhysicalLocationId}
@@ -1016,21 +964,17 @@ export function AccountDashboard({
               />
             </label>
 
-            <label className="block">
-              <span className={fieldLabelClassName}>{labels.eventType}</span>
-              <select
-                value={eventType}
-                onChange={(event) => setEventType(event.target.value)}
-                disabled={isEventBusy}
-                className={dashboardInputClassName}
-              >
-                {EVENT_SUB_TYPES.map((subType) => (
-                  <option key={subType} value={subType}>
-                    {getEventSubTypeLabel(subType, labels)}
-                  </option>
-                ))}
-              </select>
-            </label>
+            <CreatableCategorySelect
+              sector="Events"
+              categories={categories}
+              value={eventType}
+              onChange={setEventType}
+              onCategoryCreated={onCategoryCreated}
+              labels={labels}
+              disabled={isEventBusy}
+              fieldLabel={labels.eventType}
+              getOptionLabel={(name) => getEventSubTypeLabel(name, labels)}
+            />
 
             <label className="block">
               <span className={fieldLabelClassName}>{labels.description}</span>
