@@ -4,9 +4,12 @@ import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy, ImagePlus, KeyRound, Search, ShieldCheck, X } from "lucide-react";
 import { useId, useMemo, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
+import { EventDateRangePicker } from "@/components/account/EventDateRangePicker";
+import { MapsLocationInput } from "@/components/account/MapsLocationInput";
 import { SafeDeleteModal } from "@/components/account/SafeDeleteModal";
 import type { BusinessRecord } from "@/types/business";
 import {
+  EVENT_SUB_TYPES,
   getActivitiesForMainCategory,
   MAIN_CATEGORIES,
   resolveBusinessMainCategory,
@@ -21,9 +24,11 @@ import type { CurrentUser } from "@/types/user";
 import {
   getActivityLabel,
   getCatalogCategoryLabel,
+  getEventSubTypeLabel,
   getMainCategoryLabel,
   type Translations,
 } from "@/types/i18n";
+import { parseManualCoordinates } from "@/utils/mapHelpers";
 import { supabase } from "@/utils/supabase";
 import { ui } from "@/utils/ui";
 
@@ -49,45 +54,7 @@ function formatDirectoryCategory(business: BusinessRecord, labels: Translations)
 }
 
 type AdminTab = "businesses" | "events";
-type DirectorySubTab = "stores" | "activities-events";
-
-type DirectoryRow =
-  | { type: "event"; event: EventRecord }
-  | { type: "activity"; name: string };
-
-interface SyncedDateFieldProps {
-  id: string;
-  label: string;
-  value: string;
-  onChange: (value: string) => void;
-  disabled?: boolean;
-}
-
-function SyncedDateField({ id, label, value, onChange, disabled }: SyncedDateFieldProps) {
-  return (
-    <label className="block">
-      <span className={fieldLabelClassName}>{label}</span>
-      <div className="flex flex-col gap-2 sm:flex-row">
-        <input
-          id={id}
-          type="date"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          disabled={disabled}
-          className={dashboardInputClassName}
-        />
-        <input
-          type="text"
-          value={value}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder="YYYY-MM-DD"
-          disabled={disabled}
-          className={dashboardInputClassName}
-        />
-      </div>
-    </label>
-  );
-}
+type DirectorySubTab = "stores" | "activities" | "events";
 
 interface ActivityCheckboxProps {
   id: string;
@@ -157,6 +124,12 @@ interface AccountDashboardProps {
   onHasPhysicalLocationChange: (value: boolean) => void;
   newGoogleMapsUrl: string;
   setNewGoogleMapsUrl: (value: string) => void;
+  useManualBusinessCoordinates: boolean;
+  onUseManualBusinessCoordinatesChange: (value: boolean) => void;
+  manualBusinessLatitude: string;
+  onManualBusinessLatitudeChange: (value: string) => void;
+  manualBusinessLongitude: string;
+  onManualBusinessLongitudeChange: (value: string) => void;
   newInstagramUrl: string;
   setNewInstagramUrl: (value: string) => void;
   newWhatsappNumber: string;
@@ -200,6 +173,12 @@ export function AccountDashboard({
   onHasPhysicalLocationChange,
   newGoogleMapsUrl,
   setNewGoogleMapsUrl,
+  useManualBusinessCoordinates,
+  onUseManualBusinessCoordinatesChange,
+  manualBusinessLatitude,
+  onManualBusinessLatitudeChange,
+  manualBusinessLongitude,
+  onManualBusinessLongitudeChange,
   newInstagramUrl,
   setNewInstagramUrl,
   newWhatsappNumber,
@@ -231,8 +210,12 @@ export function AccountDashboard({
 
   const [adminTab, setAdminTab] = useState<AdminTab>("businesses");
   const [eventName, setEventName] = useState("");
+  const [eventType, setEventType] = useState<string>(EVENT_SUB_TYPES[0]);
   const [eventDescription, setEventDescription] = useState("");
   const [eventGoogleMapsUrl, setEventGoogleMapsUrl] = useState("");
+  const [useManualEventCoordinates, setUseManualEventCoordinates] = useState(false);
+  const [manualEventLatitude, setManualEventLatitude] = useState("");
+  const [manualEventLongitude, setManualEventLongitude] = useState("");
   const [eventStartDate, setEventStartDate] = useState("");
   const [eventEndDate, setEventEndDate] = useState("");
   const [eventOpenTime, setEventOpenTime] = useState("");
@@ -265,7 +248,7 @@ export function AccountDashboard({
     });
   }, [businesses, directorySearch, labels]);
 
-  const directoryActivitiesAndEvents = useMemo(() => {
+  const filteredActivities = useMemo(() => {
     const activityNames = new Set<string>();
     for (const business of businesses) {
       for (const activity of business.activities ?? []) {
@@ -274,24 +257,24 @@ export function AccountDashboard({
       }
     }
 
-    const rows: DirectoryRow[] = [
-      ...events.map((event) => ({ type: "event" as const, event })),
-      ...[...activityNames].sort().map((name) => ({ type: "activity" as const, name })),
-    ];
-
+    const rows = [...activityNames].sort();
     const query = directorySearch.trim().toLowerCase();
     if (!query) return rows;
 
-    return rows.filter((row) => {
-      if (row.type === "event") {
-        return (
-          row.event.name.toLowerCase().includes(query) ||
-          row.event.description.toLowerCase().includes(query)
-        );
-      }
-      return row.name.toLowerCase().includes(query);
-    });
-  }, [events, businesses, directorySearch]);
+    return rows.filter((name) => name.toLowerCase().includes(query));
+  }, [businesses, directorySearch]);
+
+  const filteredEvents = useMemo(() => {
+    const query = directorySearch.trim().toLowerCase();
+    if (!query) return events;
+
+    return events.filter(
+      (event) =>
+        event.name.toLowerCase().includes(query) ||
+        event.description.toLowerCase().includes(query) ||
+        (event.event_type?.toLowerCase().includes(query) ?? false),
+    );
+  }, [events, directorySearch]);
 
   const handleLogoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -424,8 +407,12 @@ export function AccountDashboard({
 
   const resetEventForm = () => {
     setEventName("");
+    setEventType(EVENT_SUB_TYPES[0]);
     setEventDescription("");
     setEventGoogleMapsUrl("");
+    setUseManualEventCoordinates(false);
+    setManualEventLatitude("");
+    setManualEventLongitude("");
     setEventStartDate("");
     setEventEndDate("");
     setEventOpenTime("");
@@ -439,7 +426,6 @@ export function AccountDashboard({
     if (
       !eventName.trim() ||
       !eventDescription.trim() ||
-      !eventGoogleMapsUrl.trim() ||
       !eventStartDate ||
       !eventEndDate ||
       !eventOpenTime ||
@@ -448,17 +434,38 @@ export function AccountDashboard({
       return;
     }
 
+    if (!useManualEventCoordinates && !eventGoogleMapsUrl.trim()) {
+      return;
+    }
+
     setEventPublishError(null);
     setEventSubmitSuccess(false);
-    setIsExtractingEventLocation(true);
 
-    const extraction = await extractCoordinatesFromMapsUrl(eventGoogleMapsUrl.trim());
+    let latitude: number;
+    let longitude: number;
 
-    setIsExtractingEventLocation(false);
+    if (useManualEventCoordinates) {
+      const manualCoords = parseManualCoordinates(manualEventLatitude, manualEventLongitude);
+      if (!manualCoords) {
+        setEventPublishError(labels.publishErrorMapsExtract);
+        return;
+      }
+      latitude = manualCoords.latitude;
+      longitude = manualCoords.longitude;
+    } else {
+      setIsExtractingEventLocation(true);
 
-    if (!extraction.success) {
-      setEventPublishError(extraction.error ?? labels.publishErrorMapsExtract);
-      return;
+      const extraction = await extractCoordinatesFromMapsUrl(eventGoogleMapsUrl.trim());
+
+      setIsExtractingEventLocation(false);
+
+      if (!extraction.success) {
+        setEventPublishError(extraction.error ?? labels.publishErrorMapsExtract);
+        return;
+      }
+
+      latitude = extraction.latitude;
+      longitude = extraction.longitude;
     }
 
     setIsSubmittingEvent(true);
@@ -466,9 +473,10 @@ export function AccountDashboard({
     const { error } = await supabase.from("events").insert({
       name: eventName.trim(),
       description: eventDescription.trim(),
-      google_maps_url: eventGoogleMapsUrl.trim(),
-      latitude: extraction.latitude,
-      longitude: extraction.longitude,
+      event_type: eventType,
+      google_maps_url: eventGoogleMapsUrl.trim() || null,
+      latitude,
+      longitude,
       start_date: eventStartDate,
       end_date: eventEndDate,
       open_time: eventOpenTime,
@@ -548,7 +556,8 @@ export function AccountDashboard({
           {(
             [
               { id: "stores" as const, label: labels.manageStores },
-              { id: "activities-events" as const, label: labels.manageActivitiesEvents },
+              { id: "activities" as const, label: labels.manageActivities },
+              { id: "events" as const, label: labels.manageEvents },
             ] as const
           ).map(({ id, label }) => {
             const isActive = directorySubTab === id;
@@ -605,55 +614,21 @@ export function AccountDashboard({
                 ))}
               </ul>
             )
-          ) : directoryActivitiesAndEvents.length === 0 ? (
-            <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
-              {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
-            </p>
-          ) : (
-            <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
-              {directoryActivitiesAndEvents.map((row) => {
-                if (row.type === "event") {
-                  return (
-                    <li
-                      key={`event-${row.event.id}`}
-                      className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
-                          {row.event.name}
-                        </p>
-                        <p className="mt-1 font-sans text-xs text-[#222222]/55 dark:text-white/55">
-                          {labels.eventDates}: {row.event.start_date} – {row.event.end_date}
-                        </p>
-                        <p className="mt-0.5 font-sans text-xs text-[#222222]/55 dark:text-white/55">
-                          {labels.operatingHours}: {row.event.open_time} – {row.event.close_time}
-                        </p>
-                      </div>
-                      <button
-                        type="button"
-                        onClick={() =>
-                          openDeleteModal({
-                            kind: "event",
-                            id: row.event.id,
-                            name: row.event.name,
-                          })
-                        }
-                        className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
-                      >
-                        {labels.remove}
-                      </button>
-                    </li>
-                  );
-                }
-
-                return (
+          ) : directorySubTab === "activities" ? (
+            filteredActivities.length === 0 ? (
+              <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
+                {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
+              </p>
+            ) : (
+              <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
+                {filteredActivities.map((name) => (
                   <li
-                    key={`activity-${row.name}`}
+                    key={`activity-${name}`}
                     className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
-                        {row.name}
+                        {name}
                       </p>
                       <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
                         {labels.activityTag}
@@ -661,16 +636,57 @@ export function AccountDashboard({
                     </div>
                     <button
                       type="button"
-                      onClick={() =>
-                        openDeleteModal({ kind: "activity", name: row.name })
-                      }
+                      onClick={() => openDeleteModal({ kind: "activity", name })}
                       className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
                     >
                       {labels.remove}
                     </button>
                   </li>
-                );
-              })}
+                ))}
+              </ul>
+            )
+          ) : filteredEvents.length === 0 ? (
+            <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
+              {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
+            </p>
+          ) : (
+            <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
+              {filteredEvents.map((event) => (
+                <li
+                  key={`event-${event.id}`}
+                  className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
+                >
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
+                      {event.name}
+                    </p>
+                    <p className="mt-1 font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                      {labels.eventDates}: {event.start_date} – {event.end_date}
+                    </p>
+                    <p className="mt-0.5 font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                      {labels.operatingHours}: {event.open_time} – {event.close_time}
+                    </p>
+                    {event.event_type && (
+                      <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
+                        {getEventSubTypeLabel(event.event_type, labels)}
+                      </span>
+                    )}
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openDeleteModal({
+                        kind: "event",
+                        id: event.id,
+                        name: event.name,
+                      })
+                    }
+                    className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
+                  >
+                    {labels.remove}
+                  </button>
+                </li>
+              ))}
             </ul>
           )}
         </div>
@@ -865,18 +881,28 @@ export function AccountDashboard({
           )}
 
           {hasPhysicalLocation && (
-            <label className="block">
-              <span className={fieldLabelClassName}>{labels.googleMapsLink}</span>
-              <input
-                type="url"
-                value={newGoogleMapsUrl}
-                onChange={(e) => setNewGoogleMapsUrl(e.target.value)}
-                placeholder="https://maps.app.goo.gl/…"
-                required
-                disabled={isPublishBusy}
-                className={dashboardInputClassName}
-              />
-            </label>
+            <MapsLocationInput
+              url={newGoogleMapsUrl}
+              onUrlChange={setNewGoogleMapsUrl}
+              useManualCoordinates={useManualBusinessCoordinates}
+              onUseManualCoordinatesChange={onUseManualBusinessCoordinatesChange}
+              manualLatitude={manualBusinessLatitude}
+              onManualLatitudeChange={onManualBusinessLatitudeChange}
+              manualLongitude={manualBusinessLongitude}
+              onManualLongitudeChange={onManualBusinessLongitudeChange}
+              disabled={isPublishBusy}
+              inputClassName={dashboardInputClassName}
+              labelClassName={fieldLabelClassName}
+              labels={{
+                googleMapsLink: labels.googleMapsLink,
+                enterCoordinatesManually: labels.enterCoordinatesManually,
+                latitude: labels.latitude,
+                latitudePlaceholder: labels.latitudePlaceholder,
+                longitude: labels.longitude,
+                longitudePlaceholder: labels.longitudePlaceholder,
+                shortMapsUrlWarning: labels.shortMapsUrlWarning,
+              }}
+            />
           )}
 
           <label className="block">
@@ -987,6 +1013,22 @@ export function AccountDashboard({
             </label>
 
             <label className="block">
+              <span className={fieldLabelClassName}>{labels.eventType}</span>
+              <select
+                value={eventType}
+                onChange={(event) => setEventType(event.target.value)}
+                disabled={isEventBusy}
+                className={dashboardInputClassName}
+              >
+                {EVENT_SUB_TYPES.map((subType) => (
+                  <option key={subType} value={subType}>
+                    {getEventSubTypeLabel(subType, labels)}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <label className="block">
               <span className={fieldLabelClassName}>{labels.description}</span>
               <textarea
                 value={eventDescription}
@@ -999,33 +1041,44 @@ export function AccountDashboard({
               />
             </label>
 
-            <label className="block">
-              <span className={fieldLabelClassName}>{labels.googleMapsLink}</span>
-              <input
-                type="url"
-                value={eventGoogleMapsUrl}
-                onChange={(e) => setEventGoogleMapsUrl(e.target.value)}
-                placeholder="https://maps.app.goo.gl/…"
-                required
-                disabled={isEventBusy}
-                className={dashboardInputClassName}
-              />
-            </label>
-
-            <SyncedDateField
-              id="event-start-date"
-              label={labels.startDate}
-              value={eventStartDate}
-              onChange={setEventStartDate}
+            <MapsLocationInput
+              url={eventGoogleMapsUrl}
+              onUrlChange={setEventGoogleMapsUrl}
+              useManualCoordinates={useManualEventCoordinates}
+              onUseManualCoordinatesChange={setUseManualEventCoordinates}
+              manualLatitude={manualEventLatitude}
+              onManualLatitudeChange={setManualEventLatitude}
+              manualLongitude={manualEventLongitude}
+              onManualLongitudeChange={setManualEventLongitude}
               disabled={isEventBusy}
+              inputClassName={dashboardInputClassName}
+              labelClassName={fieldLabelClassName}
+              labels={{
+                googleMapsLink: labels.googleMapsLink,
+                enterCoordinatesManually: labels.enterCoordinatesManually,
+                latitude: labels.latitude,
+                latitudePlaceholder: labels.latitudePlaceholder,
+                longitude: labels.longitude,
+                longitudePlaceholder: labels.longitudePlaceholder,
+                shortMapsUrlWarning: labels.shortMapsUrlWarning,
+              }}
             />
 
-            <SyncedDateField
-              id="event-end-date"
-              label={labels.endDate}
-              value={eventEndDate}
-              onChange={setEventEndDate}
+            <EventDateRangePicker
+              startDate={eventStartDate}
+              endDate={eventEndDate}
+              onStartDateChange={setEventStartDate}
+              onEndDateChange={setEventEndDate}
               disabled={isEventBusy}
+              inputClassName={dashboardInputClassName}
+              labelClassName={fieldLabelClassName}
+              labels={{
+                startDate: labels.startDate,
+                endDate: labels.endDate,
+                day: labels.dateDay,
+                month: labels.dateMonth,
+                year: labels.dateYear,
+              }}
             />
 
             <label className="block">

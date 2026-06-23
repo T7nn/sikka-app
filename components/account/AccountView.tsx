@@ -46,6 +46,12 @@ interface AccountViewProps {
   onHasPhysicalLocationChange: (value: boolean) => void;
   newGoogleMapsUrl: string;
   setNewGoogleMapsUrl: (value: string) => void;
+  useManualBusinessCoordinates: boolean;
+  onUseManualBusinessCoordinatesChange: (value: boolean) => void;
+  manualBusinessLatitude: string;
+  onManualBusinessLatitudeChange: (value: string) => void;
+  manualBusinessLongitude: string;
+  onManualBusinessLongitudeChange: (value: string) => void;
   newInstagramUrl: string;
   setNewInstagramUrl: (value: string) => void;
   newWhatsappNumber: string;
@@ -107,6 +113,12 @@ export function AccountView({
   onHasPhysicalLocationChange,
   newGoogleMapsUrl,
   setNewGoogleMapsUrl,
+  useManualBusinessCoordinates,
+  onUseManualBusinessCoordinatesChange,
+  manualBusinessLatitude,
+  onManualBusinessLatitudeChange,
+  manualBusinessLongitude,
+  onManualBusinessLongitudeChange,
   newInstagramUrl,
   setNewInstagramUrl,
   newWhatsappNumber,
@@ -153,6 +165,12 @@ export function AccountView({
             onHasPhysicalLocationChange={onHasPhysicalLocationChange}
             newGoogleMapsUrl={newGoogleMapsUrl}
             setNewGoogleMapsUrl={setNewGoogleMapsUrl}
+            useManualBusinessCoordinates={useManualBusinessCoordinates}
+            onUseManualBusinessCoordinatesChange={onUseManualBusinessCoordinatesChange}
+            manualBusinessLatitude={manualBusinessLatitude}
+            onManualBusinessLatitudeChange={onManualBusinessLatitudeChange}
+            manualBusinessLongitude={manualBusinessLongitude}
+            onManualBusinessLongitudeChange={onManualBusinessLongitudeChange}
             newInstagramUrl={newInstagramUrl}
             setNewInstagramUrl={setNewInstagramUrl}
             newWhatsappNumber={newWhatsappNumber}

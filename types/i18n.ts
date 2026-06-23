@@ -2,6 +2,7 @@ import {
   ALL_FOOD_FILTER,
   ALL_MAP_ACTIVITIES_FILTER,
   ALL_SERVICES_FILTER,
+  ALL_EVENTS_FILTER,
   type ActivityFilterOption,
   type CatalogCategoryFilter,
   type MainCategory,
@@ -23,9 +24,11 @@ export interface Translations {
   events: string;
   catalogServices: string;
   mapCategoryDropdown: string;
+  mapSubTypeDropdown: string;
   manageBusinesses: string;
   manageEvents: string;
   manageStores: string;
+  manageActivities: string;
   manageActivitiesEvents: string;
   directorySearchPlaceholder: string;
   directoryNoResults: string;
@@ -40,8 +43,12 @@ export interface Translations {
   addEvent: string;
   addEventSubtitle: string;
   eventName: string;
+  eventType: string;
   startDate: string;
   endDate: string;
+  dateDay: string;
+  dateMonth: string;
+  dateYear: string;
   openTime: string;
   closeTime: string;
   publishEvent: string;
@@ -49,6 +56,12 @@ export interface Translations {
   allFood: string;
   allServices: string;
   allActivities: string;
+  allEvents: string;
+  eventFestival: string;
+  eventPopup: string;
+  eventMarket: string;
+  eventWorkshop: string;
+  eventConcert: string;
   activityCoffee: string;
   activityDessert: string;
   activityPastry: string;
@@ -99,6 +112,12 @@ export interface Translations {
   description: string;
   descriptionPlaceholder: string;
   googleMapsLink: string;
+  enterCoordinatesManually: string;
+  latitude: string;
+  latitudePlaceholder: string;
+  longitude: string;
+  longitudePlaceholder: string;
+  shortMapsUrlWarning: string;
   websiteUrl: string;
   websiteUrlOnlineRequired: string;
   instagramUrl: string;
@@ -158,9 +177,11 @@ export const translations: Record<Language, Translations> = {
     events: "Events",
     catalogServices: "Services",
     mapCategoryDropdown: "Category",
+    mapSubTypeDropdown: "Sub-Type",
     manageBusinesses: "Manage Businesses",
     manageEvents: "Manage Events",
     manageStores: "Manage Stores",
+    manageActivities: "Manage Activities",
     manageActivitiesEvents: "Manage Activities & Events",
     directorySearchPlaceholder: "Search directory by name, category, or description…",
     directoryNoResults: "No items match your search.",
@@ -176,8 +197,12 @@ export const translations: Record<Language, Translations> = {
     addEvent: "Add Event",
     addEventSubtitle: "Publish a time-bound event to the Sikka map.",
     eventName: "Event Name",
+    eventType: "Event Type",
     startDate: "Start Date",
     endDate: "End Date",
+    dateDay: "Day",
+    dateMonth: "Month",
+    dateYear: "Year",
     openTime: "Open Time",
     closeTime: "Close Time",
     publishEvent: "Publish Event",
@@ -185,6 +210,12 @@ export const translations: Record<Language, Translations> = {
     allFood: "All Food",
     allServices: "All Services",
     allActivities: "All Activities",
+    allEvents: "All Events",
+    eventFestival: "Festival",
+    eventPopup: "Pop-up",
+    eventMarket: "Market",
+    eventWorkshop: "Workshop",
+    eventConcert: "Concert",
     activityCoffee: "Coffee",
     activityDessert: "Dessert",
     activityPastry: "Pastry",
@@ -235,6 +266,13 @@ export const translations: Record<Language, Translations> = {
     description: "Description",
     descriptionPlaceholder: "Describe this business…",
     googleMapsLink: "Google Maps Link",
+    enterCoordinatesManually: "Enter coordinates manually",
+    latitude: "Latitude",
+    latitudePlaceholder: "25.2048",
+    longitude: "Longitude",
+    longitudePlaceholder: "55.2708",
+    shortMapsUrlWarning:
+      "Short links may need to be resolved. If extraction fails, paste the full maps.google.com URL or use manual coordinates.",
     websiteUrl: "Website URL",
     websiteUrlOnlineRequired: "Website URL (required if no Instagram)",
     instagramUrl: "Instagram URL",
@@ -297,9 +335,11 @@ export const translations: Record<Language, Translations> = {
     events: "فعاليات",
     catalogServices: "خدمات",
     mapCategoryDropdown: "الفئة",
+    mapSubTypeDropdown: "النوع الفرعي",
     manageBusinesses: "إدارة الأعمال",
     manageEvents: "إدارة الفعاليات",
     manageStores: "إدارة المتاجر",
+    manageActivities: "إدارة الأنشطة",
     manageActivitiesEvents: "إدارة الأنشطة والفعاليات",
     directorySearchPlaceholder: "ابحث في الدليل بالاسم أو الفئة أو الوصف…",
     directoryNoResults: "لا توجد نتائج مطابقة لبحثك.",
@@ -315,8 +355,12 @@ export const translations: Record<Language, Translations> = {
     addEvent: "إضافة فعالية",
     addEventSubtitle: "نشر فعالية مؤقتة على خريطة سِكّة.",
     eventName: "اسم الفعالية",
+    eventType: "نوع الفعالية",
     startDate: "تاريخ البداية",
     endDate: "تاريخ النهاية",
+    dateDay: "اليوم",
+    dateMonth: "الشهر",
+    dateYear: "السنة",
     openTime: "وقت الافتتاح",
     closeTime: "وقت الإغلاق",
     publishEvent: "نشر الفعالية",
@@ -324,6 +368,12 @@ export const translations: Record<Language, Translations> = {
     allFood: "كل الطعام",
     allServices: "كل الخدمات",
     allActivities: "كل الأنشطة",
+    allEvents: "كل الفعاليات",
+    eventFestival: "مهرجان",
+    eventPopup: "منبثق",
+    eventMarket: "سوق",
+    eventWorkshop: "ورشة",
+    eventConcert: "حفل",
     activityCoffee: "قهوة",
     activityDessert: "حلويات",
     activityPastry: "معجنات",
@@ -374,6 +424,13 @@ export const translations: Record<Language, Translations> = {
     description: "الوصف",
     descriptionPlaceholder: "صف هذا العمل…",
     googleMapsLink: "رابط خرائط جوجل",
+    enterCoordinatesManually: "إدخال الإحداثيات يدوياً",
+    latitude: "خط العرض",
+    latitudePlaceholder: "25.2048",
+    longitude: "خط الطول",
+    longitudePlaceholder: "55.2708",
+    shortMapsUrlWarning:
+      "قد تحتاج الروابط المختصرة إلى حل يدوي. إذا فشل الاستخراج، الصق رابط maps.google.com الكامل أو أدخل الإحداثيات يدوياً.",
     websiteUrl: "رابط الموقع",
     websiteUrlOnlineRequired: "رابط الموقع (مطلوب إن لم يُذكر إنستغرام)",
     instagramUrl: "رابط إنستغرام",
@@ -480,6 +537,31 @@ export function getActivityFilterLabel(filterValue: string, t: Translations): st
   return getActivityLabel(filterValue, t);
 }
 
+const EVENT_SUB_TYPE_LABEL_MAP: Record<string, keyof Translations> = {
+  Festival: "eventFestival",
+  "Pop-up": "eventPopup",
+  Market: "eventMarket",
+  Workshop: "eventWorkshop",
+  Concert: "eventConcert",
+};
+
+export function getEventSubTypeLabel(subType: string, t: Translations): string {
+  const key = EVENT_SUB_TYPE_LABEL_MAP[subType];
+  if (key) return t[key];
+  return subType;
+}
+
+export function getSubTypeFilterLabel(filterValue: string, t: Translations): string {
+  if (filterValue === ALL_EVENTS_FILTER) return t.allEvents;
+  if (filterValue === ALL_FOOD_FILTER) return t.allFood;
+  if (filterValue === ALL_SERVICES_FILTER) return t.allServices;
+  if (filterValue === ALL_MAP_ACTIVITIES_FILTER) return t.allActivities;
+  if (EVENT_SUB_TYPE_LABEL_MAP[filterValue]) {
+    return getEventSubTypeLabel(filterValue, t);
+  }
+  return getActivityLabel(filterValue, t);
+}
+
 export function translateActivityFilterOptions(
   options: ActivityFilterOption[],
   t: Translations,
@@ -487,5 +569,15 @@ export function translateActivityFilterOptions(
   return options.map((option) => ({
     value: option.value,
     label: getActivityFilterLabel(option.value, t),
+  }));
+}
+
+export function translateSubTypeFilterOptions(
+  options: Array<{ value: string; label: string }>,
+  t: Translations,
+): Array<{ value: string; label: string }> {
+  return options.map((option) => ({
+    value: option.value,
+    label: getSubTypeFilterLabel(option.value, t),
   }));
 }

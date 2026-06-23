@@ -2,58 +2,41 @@
 
 import { Search } from "lucide-react";
 import { useMemo, useState } from "react";
+import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { BusinessCard } from "@/components/search/BusinessCard";
 import type { BusinessRecord } from "@/types/business";
-import {
-  businessMatchesCatalogCategory,
-  CATALOG_CATEGORY_FILTERS,
-  resolveBusinessMainCategory,
-  type CatalogCategoryFilter,
-} from "@/types/businessCategories";
-import { getCatalogCategoryLabel, type Translations } from "@/types/i18n";
+import { buildSearchResults, type MapViewFilter } from "@/types/businessCategories";
+import type { EventRecord } from "@/types/event";
+import { getEventSubTypeLabel, type Translations } from "@/types/i18n";
 import { ui } from "@/utils/ui";
 
 interface SearchViewProps {
   businesses: BusinessRecord[];
-  activeCatalogCategory: CatalogCategoryFilter;
-  onCatalogCategoryChange: (category: CatalogCategoryFilter) => void;
+  events: EventRecord[];
+  activeMapFilter: MapViewFilter;
+  activeSubTypeFilter: string;
+  onMapFilterChange: (filter: MapViewFilter) => void;
+  onSubTypeFilterChange: (subType: string) => void;
   onBusinessSelect: (business: BusinessRecord) => void;
   labels: Translations;
 }
 
 export function SearchView({
   businesses,
-  activeCatalogCategory,
-  onCatalogCategoryChange,
+  events,
+  activeMapFilter,
+  activeSubTypeFilter,
+  onMapFilterChange,
+  onSubTypeFilterChange,
   onBusinessSelect,
   labels,
 }: SearchViewProps) {
   const [query, setQuery] = useState("");
 
-  const searchResults = useMemo(() => {
-    const normalizedQuery = query.trim().toLowerCase();
-
-    const categoryFiltered = businesses.filter((business) =>
-      businessMatchesCatalogCategory(business, activeCatalogCategory),
-    );
-
-    if (normalizedQuery.length === 0) {
-      return categoryFiltered;
-    }
-
-    return categoryFiltered.filter((business) => {
-      const mainCategory =
-        business.main_category?.trim() || resolveBusinessMainCategory(business);
-      const activities = (business.activities ?? []).join(" ").toLowerCase();
-
-      return (
-        business.name.toLowerCase().includes(normalizedQuery) ||
-        business.description.toLowerCase().includes(normalizedQuery) ||
-        mainCategory.toLowerCase().includes(normalizedQuery) ||
-        activities.includes(normalizedQuery)
-      );
-    });
-  }, [businesses, query, activeCatalogCategory]);
+  const searchResults = useMemo(
+    () => buildSearchResults(businesses, events, activeMapFilter, activeSubTypeFilter, query),
+    [businesses, events, activeMapFilter, activeSubTypeFilter, query],
+  );
 
   return (
     <div className="flex h-full flex-col gap-8">
@@ -74,25 +57,15 @@ export function SearchView({
         />
       </div>
 
-      <div className="flex gap-2 overflow-x-auto pb-1 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
-        {CATALOG_CATEGORY_FILTERS.map((category) => {
-          const isActive = activeCatalogCategory === category;
-
-          return (
-            <button
-              key={category}
-              type="button"
-              onClick={() => onCatalogCategoryChange(category)}
-              aria-pressed={isActive}
-              className={`shrink-0 rounded-full px-5 py-2.5 font-sans text-xs font-medium uppercase tracking-wide transition-colors ${
-                isActive ? ui.pillActive : ui.pillInactive
-              }`}
-            >
-              {getCatalogCategoryLabel(category, labels)}
-            </button>
-          );
-        })}
-      </div>
+      <CategoryFilter
+        activeFilter={activeMapFilter}
+        activeSubType={activeSubTypeFilter}
+        onFilterChange={onMapFilterChange}
+        onSubTypeChange={onSubTypeFilterChange}
+        businesses={businesses}
+        labels={labels}
+        layout="inline"
+      />
 
       <ul className="flex flex-col gap-5 pb-4">
         {searchResults.length === 0 ? (
@@ -102,11 +75,53 @@ export function SearchView({
             </p>
           </li>
         ) : (
-          searchResults.map((business) => (
-            <li key={business.id}>
-              <BusinessCard business={business} labels={labels} onSelect={onBusinessSelect} />
-            </li>
-          ))
+          searchResults.map((item) => {
+            if (item.kind === "business") {
+              return (
+                <li key={`business-${item.data.id}`}>
+                  <BusinessCard
+                    business={item.data}
+                    labels={labels}
+                    onSelect={onBusinessSelect}
+                  />
+                </li>
+              );
+            }
+
+            const event = item.data;
+            return (
+              <li key={`event-${event.id}`}>
+                <article
+                  className={`cursor-default p-5 ${ui.card}`}
+                  aria-label={event.name}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-sans text-base font-semibold text-[#222222] dark:text-white">
+                        {event.name}
+                      </p>
+                      <p className="mt-2 line-clamp-2 font-sans text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
+                        {event.description}
+                      </p>
+                    </div>
+                    <span className="shrink-0 rounded-full bg-[#F9F9F9] px-3 py-1 font-sans text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
+                      {labels.events}
+                    </span>
+                  </div>
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    {event.event_type && (
+                      <span className="rounded-full bg-[#222222]/5 px-3 py-1 font-sans text-[10px] font-medium uppercase tracking-wide text-[#222222]/70 dark:bg-white/10 dark:text-white/70">
+                        {getEventSubTypeLabel(event.event_type, labels)}
+                      </span>
+                    )}
+                    <span className="font-sans text-xs text-[#222222]/45 dark:text-white/45">
+                      {labels.eventDates}: {event.start_date} – {event.end_date}
+                    </span>
+                  </div>
+                </article>
+              </li>
+            );
+          })
         )}
       </ul>
     </div>

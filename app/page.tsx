@@ -14,15 +14,16 @@ import { BottomTabBar, type TabId } from "@/components/navigation/BottomTabBar";
 import { normalizeBusiness, type BusinessRecord } from "@/types/business";
 import {
   filterBusinessesForMapView,
+  filterEventsForMapView,
   buildActivitiesPayload,
   getActivitiesForMainCategory,
-  shouldShowEventsOnMap,
-  type CatalogCategoryFilter,
+  getDefaultSubTypeFilter,
   type MainCategory,
   type MapViewFilter,
 } from "@/types/businessCategories";
-import { filterVisibleEvents, normalizeEvent, type EventRecord } from "@/types/event";
+import { normalizeEvent, type EventRecord } from "@/types/event";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
+import { parseManualCoordinates } from "@/utils/mapHelpers";
 import { verifyAccessKey } from "@/actions/verify-access-key";
 import { translations, type Language } from "@/types/i18n";
 import type { CurrentUser } from "@/types/user";
@@ -48,9 +49,10 @@ export default function HomePage() {
   const [authError, setAuthError] = useState<string | null>(null);
   const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
   const [events, setEvents] = useState<EventRecord[]>([]);
-  const [activeCatalogCategory, setActiveCatalogCategory] =
-    useState<CatalogCategoryFilter>("All");
   const [activeMapFilter, setActiveMapFilter] = useState<MapViewFilter>("All");
+  const [activeSubTypeFilter, setActiveSubTypeFilter] = useState(
+    getDefaultSubTypeFilter("All"),
+  );
   const [mapPreviewBusiness, setMapPreviewBusiness] = useState<BusinessRecord | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
 
@@ -64,6 +66,9 @@ export default function HomePage() {
   const [newDescription, setNewDescription] = useState("");
   const [hasPhysicalLocation, setHasPhysicalLocation] = useState(true);
   const [newGoogleMapsUrl, setNewGoogleMapsUrl] = useState("");
+  const [useManualBusinessCoordinates, setUseManualBusinessCoordinates] = useState(false);
+  const [manualBusinessLatitude, setManualBusinessLatitude] = useState("");
+  const [manualBusinessLongitude, setManualBusinessLongitude] = useState("");
   const [newInstagramUrl, setNewInstagramUrl] = useState("");
   const [newWhatsappNumber, setNewWhatsappNumber] = useState("");
   const [newWebsiteUrl, setNewWebsiteUrl] = useState("");
@@ -148,30 +153,18 @@ export default function HomePage() {
   }, [applyAuthSession]);
 
   const mapFilteredBusinesses = useMemo(
-    () => filterBusinessesForMapView(businesses, activeMapFilter),
-    [businesses, activeMapFilter],
+    () => filterBusinessesForMapView(businesses, activeMapFilter, activeSubTypeFilter),
+    [businesses, activeMapFilter, activeSubTypeFilter],
   );
 
-  const mapFilteredEvents = useMemo(() => {
-    if (!shouldShowEventsOnMap(activeMapFilter)) return [];
-    return filterVisibleEvents(events);
-  }, [events, activeMapFilter]);
-
-  const searchFilteredBusinesses = useMemo(
-    () =>
-      businesses.filter((business) => {
-        if (activeCatalogCategory === "All") return true;
-        const raw = business.main_category?.trim();
-        if (raw === "Food" || raw === "Services") {
-          return raw === activeCatalogCategory;
-        }
-        return business.type.trim().toLowerCase() === activeCatalogCategory.toLowerCase();
-      }),
-    [businesses, activeCatalogCategory],
+  const mapFilteredEvents = useMemo(
+    () => filterEventsForMapView(events, activeMapFilter, activeSubTypeFilter),
+    [events, activeMapFilter, activeSubTypeFilter],
   );
 
-  const handleCatalogCategoryChange = (category: CatalogCategoryFilter) => {
-    setActiveCatalogCategory(category);
+  const handleMapFilterChange = (filter: MapViewFilter) => {
+    setActiveMapFilter(filter);
+    setActiveSubTypeFilter(getDefaultSubTypeFilter(filter));
   };
 
   const handleMapPinSelect = (business: BusinessRecord) => {
@@ -308,6 +301,9 @@ export default function HomePage() {
     setNewDescription("");
     setHasPhysicalLocation(true);
     setNewGoogleMapsUrl("");
+    setUseManualBusinessCoordinates(false);
+    setManualBusinessLatitude("");
+    setManualBusinessLongitude("");
     setNewInstagramUrl("");
     setNewWhatsappNumber("");
     setNewWebsiteUrl("");
@@ -317,6 +313,9 @@ export default function HomePage() {
     setHasPhysicalLocation(value);
     if (!value) {
       setNewGoogleMapsUrl("");
+      setUseManualBusinessCoordinates(false);
+      setManualBusinessLatitude("");
+      setManualBusinessLongitude("");
     }
   };
 
@@ -338,8 +337,17 @@ export default function HomePage() {
       return;
     }
 
-    if (hasPhysicalLocation && !newGoogleMapsUrl.trim()) {
+    if (hasPhysicalLocation && !useManualBusinessCoordinates && !newGoogleMapsUrl.trim()) {
       setPublishError(t.publishErrorMapsRequired);
+      return;
+    }
+
+    if (
+      hasPhysicalLocation &&
+      useManualBusinessCoordinates &&
+      !parseManualCoordinates(manualBusinessLatitude, manualBusinessLongitude)
+    ) {
+      setPublishError(t.publishErrorMapsExtract);
       return;
     }
 
@@ -348,20 +356,34 @@ export default function HomePage() {
     let googleMapsUrl: string | null = null;
 
     if (hasPhysicalLocation) {
-      setIsExtractingLocation(true);
+      if (useManualBusinessCoordinates) {
+        const manualCoords = parseManualCoordinates(
+          manualBusinessLatitude,
+          manualBusinessLongitude,
+        );
+        if (!manualCoords) {
+          setPublishError(t.publishErrorMapsExtract);
+          return;
+        }
+        latitude = manualCoords.latitude;
+        longitude = manualCoords.longitude;
+        googleMapsUrl = newGoogleMapsUrl.trim() || null;
+      } else {
+        setIsExtractingLocation(true);
 
-      const extraction = await extractCoordinatesFromMapsUrl(newGoogleMapsUrl.trim());
+        const extraction = await extractCoordinatesFromMapsUrl(newGoogleMapsUrl.trim());
 
-      setIsExtractingLocation(false);
+        setIsExtractingLocation(false);
 
-      if (!extraction.success) {
-        setPublishError(extraction.error ?? t.publishErrorMapsExtract);
-        return;
+        if (!extraction.success) {
+          setPublishError(extraction.error ?? t.publishErrorMapsExtract);
+          return;
+        }
+
+        latitude = extraction.latitude;
+        longitude = extraction.longitude;
+        googleMapsUrl = newGoogleMapsUrl.trim();
       }
-
-      latitude = extraction.latitude;
-      longitude = extraction.longitude;
-      googleMapsUrl = newGoogleMapsUrl.trim();
     }
 
     const predefinedActivities = getActivitiesForMainCategory(newMainCategory);
@@ -457,8 +479,11 @@ export default function HomePage() {
               <HomeView
                 businesses={mapFilteredBusinesses}
                 events={mapFilteredEvents}
+                allBusinesses={businesses}
                 activeMapFilter={activeMapFilter}
-                onMapFilterChange={setActiveMapFilter}
+                activeSubTypeFilter={activeSubTypeFilter}
+                onMapFilterChange={handleMapFilterChange}
+                onSubTypeFilterChange={setActiveSubTypeFilter}
                 mapPreviewBusiness={mapPreviewBusiness}
                 onMapPinSelect={handleMapPinSelect}
                 labels={t}
@@ -469,9 +494,12 @@ export default function HomePage() {
           {activeTab === "search" && (
             <motion.div key="search" {...VIEW_TRANSITION} className="h-full">
               <SearchView
-                businesses={searchFilteredBusinesses}
-                activeCatalogCategory={activeCatalogCategory}
-                onCatalogCategoryChange={handleCatalogCategoryChange}
+                businesses={businesses}
+                events={events}
+                activeMapFilter={activeMapFilter}
+                activeSubTypeFilter={activeSubTypeFilter}
+                onMapFilterChange={handleMapFilterChange}
+                onSubTypeFilterChange={setActiveSubTypeFilter}
                 onBusinessSelect={handleOpenBusinessDetails}
                 labels={t}
               />
@@ -526,6 +554,12 @@ export default function HomePage() {
                 onHasPhysicalLocationChange={handleHasPhysicalLocationChange}
                 newGoogleMapsUrl={newGoogleMapsUrl}
                 setNewGoogleMapsUrl={setNewGoogleMapsUrl}
+                useManualBusinessCoordinates={useManualBusinessCoordinates}
+                onUseManualBusinessCoordinatesChange={setUseManualBusinessCoordinates}
+                manualBusinessLatitude={manualBusinessLatitude}
+                onManualBusinessLatitudeChange={setManualBusinessLatitude}
+                manualBusinessLongitude={manualBusinessLongitude}
+                onManualBusinessLongitudeChange={setManualBusinessLongitude}
                 newInstagramUrl={newInstagramUrl}
                 setNewInstagramUrl={setNewInstagramUrl}
                 newWhatsappNumber={newWhatsappNumber}

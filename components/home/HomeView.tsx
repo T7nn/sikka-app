@@ -11,7 +11,10 @@ interface HomeViewProps {
   businesses: BusinessRecord[];
   events: EventRecord[];
   activeMapFilter: MapViewFilter;
+  activeSubTypeFilter: string;
   onMapFilterChange: (filter: MapViewFilter) => void;
+  onSubTypeFilterChange: (subType: string) => void;
+  allBusinesses: BusinessRecord[];
   mapPreviewBusiness: BusinessRecord | null;
   onMapPinSelect: (business: BusinessRecord) => void;
   labels: Translations;
@@ -21,7 +24,10 @@ export function HomeView({
   businesses,
   events,
   activeMapFilter,
+  activeSubTypeFilter,
   onMapFilterChange,
+  onSubTypeFilterChange,
+  allBusinesses,
   mapPreviewBusiness,
   onMapPinSelect,
   labels,
@@ -37,8 +43,12 @@ export function HomeView({
 
       <CategoryFilter
         activeFilter={activeMapFilter}
+        activeSubType={activeSubTypeFilter}
         onFilterChange={onMapFilterChange}
+        onSubTypeChange={onSubTypeFilterChange}
+        businesses={allBusinesses}
         labels={labels}
+        layout="overlay"
       />
     </div>
   );

@@ -2,12 +2,19 @@
 
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { useMemo } from "react";
+import type { BusinessRecord } from "@/types/business";
 import {
+  buildSubTypeFilterOptions,
   MAP_VIEW_DROPDOWN_OPTIONS,
   type MapViewDropdownOption,
   type MapViewFilter,
 } from "@/types/businessCategories";
-import { getMapViewFilterLabel, type Translations } from "@/types/i18n";
+import {
+  getMapViewFilterLabel,
+  translateSubTypeFilterOptions,
+  type Translations,
+} from "@/types/i18n";
 
 const pillShellClassName =
   "rounded-full bg-white p-1.5 shadow-soft-airy backdrop-blur-md dark:border dark:border-white/10 dark:bg-black dark:shadow-none";
@@ -23,22 +30,44 @@ const dropdownSelectClassName =
 
 interface CategoryFilterProps {
   activeFilter: MapViewFilter;
+  activeSubType: string;
   onFilterChange: (filter: MapViewFilter) => void;
+  onSubTypeChange: (subType: string) => void;
+  businesses: BusinessRecord[];
   labels: Translations;
+  layout?: "overlay" | "inline";
 }
 
 export function CategoryFilter({
   activeFilter,
+  activeSubType,
   onFilterChange,
+  onSubTypeChange,
+  businesses,
   labels,
+  layout = "overlay",
 }: CategoryFilterProps) {
   const isAllActive = activeFilter === "All";
   const dropdownValue: MapViewDropdownOption =
     activeFilter === "All" ? "Events" : (activeFilter as MapViewDropdownOption);
   const isDropdownActive = !isAllActive;
+  const showSubType = !isAllActive;
+
+  const subTypeOptions = useMemo(() => {
+    if (!showSubType) return [];
+    return translateSubTypeFilterOptions(
+      buildSubTypeFilterOptions(activeFilter, businesses),
+      labels,
+    );
+  }, [activeFilter, businesses, labels, showSubType]);
+
+  const containerClassName =
+    layout === "overlay"
+      ? "pointer-events-auto absolute top-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2"
+      : "flex flex-wrap items-center gap-2";
 
   return (
-    <div className="pointer-events-auto absolute top-6 left-1/2 z-20 flex -translate-x-1/2 items-center gap-2">
+    <div className={containerClassName}>
       <div
         role="tablist"
         aria-label={labels.primaryCategoryFilter}
@@ -53,7 +82,7 @@ export function CategoryFilter({
         >
           {isAllActive && (
             <motion.div
-              layoutId="activeFilter"
+              layoutId={layout === "overlay" ? "activeFilter" : "searchActiveFilter"}
               className="absolute inset-0 z-0 rounded-full bg-[#222222] shadow-soft-airy dark:bg-white dark:shadow-none"
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
             />
@@ -67,10 +96,10 @@ export function CategoryFilter({
           </span>
         </button>
 
-        <div className={`relative ${isDropdownActive ? "" : ""}`}>
+        <div className="relative">
           {isDropdownActive && (
             <motion.div
-              layoutId="activeFilter"
+              layoutId={layout === "overlay" ? "activeFilter" : "searchActiveFilter"}
               className="absolute inset-0 z-0 rounded-full bg-[#222222] shadow-soft-airy dark:bg-white dark:shadow-none"
               transition={{ type: "spring", bounce: 0.2, duration: 0.6 }}
             />
@@ -103,11 +132,40 @@ export function CategoryFilter({
             strokeWidth={1.75}
             aria-hidden
             className={`pointer-events-none absolute inset-e-3 top-1/2 z-10 -translate-y-1/2 ${
-              isDropdownActive ? "text-white/70 dark:text-black/70" : "text-[#222222]/40 dark:text-white/40"
+              isDropdownActive
+                ? "text-white/70 dark:text-black/70"
+                : "text-[#222222]/40 dark:text-white/40"
             }`}
           />
         </div>
       </div>
+
+      {showSubType && subTypeOptions.length > 0 && (
+        <div className={`relative ${pillShellClassName}`}>
+          <label className="sr-only" htmlFor="map-subtype-filter">
+            {labels.mapSubTypeDropdown}
+          </label>
+          <select
+            id="map-subtype-filter"
+            value={activeSubType}
+            onChange={(event) => onSubTypeChange(event.target.value)}
+            className={`${dropdownSelectClassName} text-[#222222] dark:text-white`}
+            aria-label={labels.mapSubTypeDropdown}
+          >
+            {subTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown
+            size={14}
+            strokeWidth={1.75}
+            aria-hidden
+            className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
+          />
+        </div>
+      )}
     </div>
   );
 }

@@ -1,4 +1,5 @@
 import type { BusinessRecord } from "@/types/business";
+import { filterVisibleEvents, type EventRecord } from "@/types/event";
 
 export type MainCategory = "Food" | "Services";
 
@@ -21,6 +22,17 @@ export const CATALOG_CATEGORY_FILTERS: CatalogCategoryFilter[] = [
 export const ALL_FOOD_FILTER = "all-food";
 export const ALL_SERVICES_FILTER = "all-services";
 export const ALL_MAP_ACTIVITIES_FILTER = "all-activities";
+export const ALL_EVENTS_FILTER = "all-events";
+
+export const EVENT_SUB_TYPES = [
+  "Festival",
+  "Pop-up",
+  "Market",
+  "Workshop",
+  "Concert",
+] as const;
+
+export type EventSubType = (typeof EVENT_SUB_TYPES)[number];
 
 export interface ActivityFilterOption {
   value: string;
@@ -182,13 +194,135 @@ export function shouldShowEventsOnMap(filter: MapViewFilter): boolean {
   return filter === "All" || filter === "Events";
 }
 
+export interface SubTypeFilterOption {
+  value: string;
+  label: string;
+}
+
+export function getDefaultSubTypeFilter(filter: MapViewFilter): string {
+  if (filter === "Events") return ALL_EVENTS_FILTER;
+  if (filter === "Food") return ALL_FOOD_FILTER;
+  if (filter === "Services") return ALL_SERVICES_FILTER;
+  return ALL_MAP_ACTIVITIES_FILTER;
+}
+
+export function buildSubTypeFilterOptions(
+  filter: MapViewFilter,
+  businesses: BusinessRecord[],
+): SubTypeFilterOption[] {
+  if (filter === "Events") {
+    return [
+      { value: ALL_EVENTS_FILTER, label: "All Events" },
+      ...EVENT_SUB_TYPES.map((subType) => ({ value: subType, label: subType })),
+    ];
+  }
+
+  if (filter === "Food" || filter === "Services") {
+    return buildActivityFilterOptions(filter, businesses);
+  }
+
+  return [];
+}
+
+export function eventMatchesSubType(event: EventRecord, subTypeFilter: string): boolean {
+  if (subTypeFilter === ALL_EVENTS_FILTER) return true;
+
+  const normalizedFilter = subTypeFilter.trim().toLowerCase();
+  const eventType = event.event_type?.trim().toLowerCase();
+
+  if (eventType && eventType === normalizedFilter) {
+    return true;
+  }
+
+  const haystack = `${event.name} ${event.description}`.toLowerCase();
+  return haystack.includes(normalizedFilter);
+}
+
+export function filterEventsForMapView(
+  events: EventRecord[],
+  filter: MapViewFilter,
+  subTypeFilter: string,
+): EventRecord[] {
+  if (!shouldShowEventsOnMap(filter)) return [];
+
+  let visible = filterVisibleEvents(events);
+
+  if (filter === "Events" && subTypeFilter !== ALL_EVENTS_FILTER) {
+    visible = visible.filter((event) => eventMatchesSubType(event, subTypeFilter));
+  }
+
+  return visible;
+}
+
 export function filterBusinessesForMapView(
   businesses: BusinessRecord[],
   filter: MapViewFilter,
+  subTypeFilter?: string,
 ): BusinessRecord[] {
   if (filter === "All") return businesses;
   if (filter === "Events") return [];
-  return businesses.filter((business) => businessMatchesCatalogCategory(business, filter));
+
+  const categoryFilter = filter as CatalogCategoryFilter;
+  const activityFilter = subTypeFilter ?? getDefaultSubTypeFilter(filter);
+  return filterBusinessesForMap(businesses, categoryFilter, activityFilter);
+}
+
+export type SearchResultItem =
+  | { kind: "business"; data: BusinessRecord }
+  | { kind: "event"; data: EventRecord };
+
+export function buildSearchResults(
+  businesses: BusinessRecord[],
+  events: EventRecord[],
+  filter: MapViewFilter,
+  subTypeFilter: string,
+  query: string,
+): SearchResultItem[] {
+  const normalizedQuery = query.trim().toLowerCase();
+  const items: SearchResultItem[] = [];
+
+  const filteredBusinesses = filterBusinessesForMapView(businesses, filter, subTypeFilter);
+  const filteredEvents = filterEventsForMapView(events, filter, subTypeFilter);
+
+  if (filter === "All" || filter === "Food" || filter === "Services") {
+    for (const business of filteredBusinesses) {
+      items.push({ kind: "business", data: business });
+    }
+  }
+
+  if (filter === "All" || filter === "Events") {
+    for (const event of filteredEvents) {
+      items.push({ kind: "event", data: event });
+    }
+  }
+
+  if (!normalizedQuery) {
+    return items;
+  }
+
+  return items.filter((item) => {
+    if (item.kind === "business") {
+      const business = item.data;
+      const mainCategory = business.main_category?.trim() || resolveBusinessMainCategory(business);
+      const activities = (business.activities ?? []).join(" ").toLowerCase();
+
+      return (
+        business.name.toLowerCase().includes(normalizedQuery) ||
+        business.description.toLowerCase().includes(normalizedQuery) ||
+        mainCategory.toLowerCase().includes(normalizedQuery) ||
+        activities.includes(normalizedQuery)
+      );
+    }
+
+    const event = item.data;
+    const eventType = event.event_type?.toLowerCase() ?? "";
+
+    return (
+      event.name.toLowerCase().includes(normalizedQuery) ||
+      event.description.toLowerCase().includes(normalizedQuery) ||
+      eventType.includes(normalizedQuery)
+    );
+  });
 }
 
 export function filterBusinessesForMap(
