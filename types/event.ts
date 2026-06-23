@@ -10,6 +10,7 @@ export interface EventRecord {
   open_time: string;
   close_time: string;
   event_type?: string | null;
+  category?: string | null;
 }
 
 export type EventStatus = "open" | "closed" | "ended";
@@ -78,6 +79,7 @@ export function normalizeEvent(row: Record<string, unknown>): EventRecord | null
     open_time: openTime,
     close_time: closeTime,
     event_type: optionalString(row.event_type),
+    category: optionalString(row.category ?? row.event_category),
   };
 }
 

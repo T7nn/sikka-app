@@ -139,8 +139,11 @@ export interface Translations {
   directoryManagement: string;
   directoryManagementSubtitle: string;
   directoryPrimaryFilter: string;
+  directorySectorFilter: string;
   directoryEntityFilter: string;
   directoryTypeFilter: string;
+  directoryCategoryFilter: string;
+  allTypes: string;
   entityStore: string;
   entityService: string;
   entityEvent: string;
@@ -149,6 +152,7 @@ export interface Translations {
   directoryEntityEvents: string;
   filterAll: string;
   directoryEmpty: string;
+  directoryLoading: string;
   delete: string;
   deleteConfirm: string;
   deleteErrorAlert: string;
@@ -308,8 +312,11 @@ export const translations: Record<Language, Translations> = {
     directoryManagementSubtitle:
       "Browse, filter, and remove any store, service, or event in the Sikka catalog.",
     directoryPrimaryFilter: "Category",
+    directorySectorFilter: "Sector",
     directoryEntityFilter: "Entity",
     directoryTypeFilter: "Type",
+    directoryCategoryFilter: "Category",
+    allTypes: "All Types",
     entityStore: "Store",
     entityService: "Service",
     entityEvent: "Event",
@@ -318,6 +325,7 @@ export const translations: Record<Language, Translations> = {
     directoryEntityEvents: "Events",
     filterAll: "All",
     directoryEmpty: "No items in the directory yet.",
+    directoryLoading: "Loading directory…",
     delete: "Delete",
     deleteConfirm: "Are you sure you want to delete this business? This cannot be undone.",
     deleteErrorAlert: "Unable to delete this business. Please try again.",
@@ -474,8 +482,11 @@ export const translations: Record<Language, Translations> = {
     directoryManagementSubtitle:
       "تصفح وفلترة وإزالة أي متجر أو خدمة أو فعالية في دليل سِكّة.",
     directoryPrimaryFilter: "الفئة",
+    directorySectorFilter: "القطاع",
     directoryEntityFilter: "الكيان",
     directoryTypeFilter: "النوع",
+    directoryCategoryFilter: "الفئة",
+    allTypes: "كل الأنواع",
     entityStore: "متجر",
     entityService: "خدمة",
     entityEvent: "فعالية",
@@ -484,6 +495,7 @@ export const translations: Record<Language, Translations> = {
     directoryEntityEvents: "الفعاليات",
     filterAll: "الكل",
     directoryEmpty: "لا توجد عناصر في الدليل بعد.",
+    directoryLoading: "جارٍ تحميل الدليل…",
     delete: "حذف",
     deleteConfirm: "هل أنت متأكد من حذف هذا العمل؟ لا يمكن التراجع عن هذا الإجراء.",
     deleteErrorAlert: "تعذّر حذف هذا العمل. يُرجى المحاولة مرة أخرى.",

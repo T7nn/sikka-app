@@ -7,7 +7,12 @@ import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { EventDateRangePicker } from "@/components/account/EventDateRangePicker";
 import { MapsLocationInput } from "@/components/account/MapsLocationInput";
 import { SafeDeleteModal } from "@/components/account/SafeDeleteModal";
-import { DirectoryFilter, type DirectoryFilterChange } from "@/components/admin/DirectoryFilter";
+import { DirectoryFilter } from "@/components/admin/DirectoryFilter";
+import {
+  DIRECTORY_ALL_CATEGORY,
+  DIRECTORY_ALL_TYPES,
+  type DirectorySector,
+} from "@/types/adminDirectoryQuery";
 import {
   DIRECTORY_SUBTYPE_ALL,
   filterDirectoryList,
@@ -233,6 +238,9 @@ export function AccountDashboard({
   const [eventPublishError, setEventPublishError] = useState<string | null>(null);
   const [eventSubmitSuccess, setEventSubmitSuccess] = useState(false);
 
+  const [activeSector, setActiveSector] = useState<DirectorySector>("Food");
+  const [activeType, setActiveType] = useState(DIRECTORY_ALL_TYPES);
+  const [activeCategory, setActiveCategory] = useState(DIRECTORY_ALL_CATEGORY);
   const [primaryFilter, setPrimaryFilter] = useState<DirectoryPrimaryFilter>("Food");
   const [entityType, setEntityType] = useState<DirectoryEntityType>("Store");
   const [subType, setSubType] = useState(DIRECTORY_SUBTYPE_ALL);
@@ -258,14 +266,41 @@ export function AccountDashboard({
     [businesses, events, primaryFilter, entityType, subType, directorySearch],
   );
 
-  const handleFilterChange = ({
-    mainCategory,
-    subCategory,
-    entityType: nextEntity,
-  }: DirectoryFilterChange) => {
-    setPrimaryFilter(mainCategory);
-    setSubType(subCategory);
-    setEntityType(nextEntity);
+  const mapSectorFilters = (
+    sector: DirectorySector,
+    type: string,
+    category: string,
+  ): {
+    primary: DirectoryPrimaryFilter;
+    entity: DirectoryEntityType;
+    sub: string;
+  } => {
+    const sub = category === DIRECTORY_ALL_CATEGORY ? DIRECTORY_SUBTYPE_ALL : category;
+
+    if (sector === "Events") {
+      return { primary: sector, entity: "Event", sub };
+    }
+
+    if (type === "Activities") {
+      return { primary: sector, entity: "Activity", sub };
+    }
+
+    return { primary: sector, entity: "Store", sub };
+  };
+
+  const handleFilterChange = (
+    sector: DirectorySector,
+    type: string,
+    category: string,
+  ) => {
+    setActiveSector(sector);
+    setActiveType(type);
+    setActiveCategory(category);
+
+    const mapped = mapSectorFilters(sector, type, category);
+    setPrimaryFilter(mapped.primary);
+    setEntityType(mapped.entity);
+    setSubType(mapped.sub);
   };
 
   const handleLogoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
@@ -546,11 +581,10 @@ export function AccountDashboard({
 
         <div className="mt-5">
           <DirectoryFilter
-            businesses={businesses}
             labels={labels}
-            mainCategory={primaryFilter}
-            entityType={entityType}
-            subCategory={subType}
+            activeSector={activeSector}
+            activeType={activeType}
+            activeCategory={activeCategory}
             onFilterChange={handleFilterChange}
           />
         </div>
