@@ -4,6 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { AccountDashboard } from "@/components/account/AccountDashboard";
 import { AuthGateway } from "@/components/account/AuthGateway";
 import type { MainCategory } from "@/types/businessCategories";
+import type { EventRecord } from "@/types/event";
 import type { BusinessRecord } from "@/types/business";
 import type { CurrentUser } from "@/types/user";
 import type { Translations } from "@/types/i18n";
@@ -12,6 +13,8 @@ import type { Dispatch, FormEvent, SetStateAction } from "react";
 interface AccountViewProps {
   currentUser: CurrentUser | null;
   businesses: BusinessRecord[];
+  events: EventRecord[];
+  setEvents: Dispatch<SetStateAction<EventRecord[]>>;
   labels: Translations;
   email: string;
   setEmail: (value: string) => void;
@@ -71,6 +74,8 @@ const AUTH_TRANSITION = {
 export function AccountView({
   currentUser,
   businesses,
+  events,
+  setEvents,
   labels,
   email,
   setEmail,
@@ -126,6 +131,8 @@ export function AccountView({
           <AccountDashboard
             user={currentUser}
             businesses={businesses}
+            events={events}
+            setEvents={setEvents}
             labels={labels}
             onSignOut={onSignOut}
             setBusinesses={setBusinesses}

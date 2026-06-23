@@ -1,9 +1,10 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Copy, ImagePlus, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
-import { useId, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { Check, Copy, ImagePlus, KeyRound, Search, ShieldCheck, X } from "lucide-react";
+import { useId, useMemo, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
+import { SafeDeleteModal } from "@/components/account/SafeDeleteModal";
 import type { BusinessRecord } from "@/types/business";
 import {
   getActivitiesForMainCategory,
@@ -11,6 +12,11 @@ import {
   resolveBusinessMainCategory,
   type MainCategory,
 } from "@/types/businessCategories";
+import {
+  getAffectedDirectoryItems,
+  type DirectoryDeleteTarget,
+} from "@/types/directoryDelete";
+import type { EventRecord } from "@/types/event";
 import type { CurrentUser } from "@/types/user";
 import {
   getActivityLabel,
@@ -43,6 +49,11 @@ function formatDirectoryCategory(business: BusinessRecord, labels: Translations)
 }
 
 type AdminTab = "businesses" | "events";
+type DirectorySubTab = "stores" | "activities-events";
+
+type DirectoryRow =
+  | { type: "event"; event: EventRecord }
+  | { type: "activity"; name: string };
 
 interface SyncedDateFieldProps {
   id: string;
@@ -124,6 +135,8 @@ function ActivityCheckbox({
 interface AccountDashboardProps {
   user: CurrentUser;
   businesses: BusinessRecord[];
+  events: EventRecord[];
+  setEvents: Dispatch<SetStateAction<EventRecord[]>>;
   labels: Translations;
   onSignOut?: () => void;
   setBusinesses: Dispatch<SetStateAction<BusinessRecord[]>>;
@@ -165,6 +178,8 @@ interface AccountDashboardProps {
 export function AccountDashboard({
   user,
   businesses,
+  events,
+  setEvents,
   labels,
   onSignOut,
   setBusinesses,
@@ -227,6 +242,57 @@ export function AccountDashboard({
   const [eventPublishError, setEventPublishError] = useState<string | null>(null);
   const [eventSubmitSuccess, setEventSubmitSuccess] = useState(false);
 
+  const [directorySubTab, setDirectorySubTab] = useState<DirectorySubTab>("stores");
+  const [directorySearch, setDirectorySearch] = useState("");
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [itemToDelete, setItemToDelete] = useState<DirectoryDeleteTarget | null>(null);
+  const [affectedItemsList, setAffectedItemsList] = useState<string[]>([]);
+
+  const filteredStores = useMemo(() => {
+    const query = directorySearch.trim().toLowerCase();
+    if (!query) return businesses;
+
+    return businesses.filter((business) => {
+      const category = formatDirectoryCategory(business, labels).toLowerCase();
+      const activities = (business.activities ?? []).join(" ").toLowerCase();
+
+      return (
+        business.name.toLowerCase().includes(query) ||
+        business.description.toLowerCase().includes(query) ||
+        category.includes(query) ||
+        activities.includes(query)
+      );
+    });
+  }, [businesses, directorySearch, labels]);
+
+  const directoryActivitiesAndEvents = useMemo(() => {
+    const activityNames = new Set<string>();
+    for (const business of businesses) {
+      for (const activity of business.activities ?? []) {
+        const trimmed = activity.trim();
+        if (trimmed) activityNames.add(trimmed);
+      }
+    }
+
+    const rows: DirectoryRow[] = [
+      ...events.map((event) => ({ type: "event" as const, event })),
+      ...[...activityNames].sort().map((name) => ({ type: "activity" as const, name })),
+    ];
+
+    const query = directorySearch.trim().toLowerCase();
+    if (!query) return rows;
+
+    return rows.filter((row) => {
+      if (row.type === "event") {
+        return (
+          row.event.name.toLowerCase().includes(query) ||
+          row.event.description.toLowerCase().includes(query)
+        );
+      }
+      return row.name.toLowerCase().includes(query);
+    });
+  }, [events, businesses, directorySearch]);
+
   const handleLogoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) onLogoSelect(file);
@@ -283,21 +349,77 @@ export function AccountDashboard({
     setKeyError(null);
   };
 
-  const handleDeleteBusiness = async (id: string) => {
-    if (!window.confirm(labels.deleteConfirm)) {
+  const openDeleteModal = (target: DirectoryDeleteTarget) => {
+    setItemToDelete(target);
+    setAffectedItemsList(getAffectedDirectoryItems(target, businesses));
+    setIsDeleteModalOpen(true);
+  };
+
+  const closeDeleteModal = () => {
+    setIsDeleteModalOpen(false);
+    setItemToDelete(null);
+    setAffectedItemsList([]);
+  };
+
+  const executePermanentDelete = async () => {
+    if (!itemToDelete) return;
+
+    if (itemToDelete.kind === "store") {
+      const { error } = await supabase.from("businesses").delete().eq("id", itemToDelete.id);
+      if (error) {
+        console.error("Failed to delete business:", error.message);
+        alert("Failed to delete: " + error.message);
+        return;
+      }
+      setBusinesses((previous) => previous.filter((business) => business.id !== itemToDelete.id));
+      onBusinessDeleted?.(itemToDelete.id);
       return;
     }
 
-    const { error } = await supabase.from("businesses").delete().eq("id", id);
-
-    if (error) {
-      console.error("Failed to delete business:", error.message);
-      alert("Failed to delete: " + error.message);
+    if (itemToDelete.kind === "event") {
+      const { error } = await supabase.from("events").delete().eq("id", itemToDelete.id);
+      if (error) {
+        console.error("Failed to delete event:", error.message);
+        alert("Failed to delete: " + error.message);
+        return;
+      }
+      setEvents((previous) => previous.filter((event) => event.id !== itemToDelete.id));
+      await onEventsChanged?.();
       return;
     }
 
-    setBusinesses((previous) => previous.filter((business) => business.id !== id));
-    onBusinessDeleted?.(id);
+    const normalizedActivity = itemToDelete.name.trim().toLowerCase();
+    const affected = businesses.filter((business) =>
+      (business.activities ?? []).some(
+        (activity) => activity.trim().toLowerCase() === normalizedActivity,
+      ),
+    );
+
+    for (const business of affected) {
+      const nextActivities = (business.activities ?? []).filter(
+        (activity) => activity.trim().toLowerCase() !== normalizedActivity,
+      );
+
+      const { error } = await supabase
+        .from("businesses")
+        .update({ activities: nextActivities })
+        .eq("id", business.id);
+
+      if (error) {
+        console.error("Failed to remove activity:", error.message);
+        alert("Failed to delete: " + error.message);
+        return;
+      }
+    }
+
+    setBusinesses((previous) =>
+      previous.map((business) => ({
+        ...business,
+        activities: (business.activities ?? []).filter(
+          (activity) => activity.trim().toLowerCase() !== normalizedActivity,
+        ),
+      })),
+    );
   };
 
   const resetEventForm = () => {
@@ -390,6 +512,185 @@ export function AccountDashboard({
         </p>
       </div>
 
+      <section className={`p-6 ${ui.card}`}>
+        <div className="flex items-start gap-4 px-2">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F9F9F9] dark:bg-white/10">
+            <ShieldCheck size={20} strokeWidth={1.5} className="text-[#222222]/70 dark:text-white/70" />
+          </span>
+          <div className="min-w-0 flex-1">
+            <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
+              {labels.directoryManagement}
+            </h2>
+            <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
+              {labels.directoryManagementSubtitle}
+            </p>
+          </div>
+        </div>
+
+        <div className="relative mt-5">
+          <Search
+            size={18}
+            strokeWidth={1.75}
+            className="pointer-events-none absolute inset-s-5 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
+            aria-hidden
+          />
+          <input
+            type="search"
+            value={directorySearch}
+            onChange={(event) => setDirectorySearch(event.target.value)}
+            placeholder={labels.directorySearchPlaceholder}
+            className={`w-full rounded-full py-4 ps-12 pe-6 font-sans text-sm font-medium ${ui.input}`}
+            aria-label={labels.directorySearchPlaceholder}
+          />
+        </div>
+
+        <div className={`mt-4 flex gap-2 p-1.5 rounded-[32px] ${ui.mutedSurface}`}>
+          {(
+            [
+              { id: "stores" as const, label: labels.manageStores },
+              { id: "activities-events" as const, label: labels.manageActivitiesEvents },
+            ] as const
+          ).map(({ id, label }) => {
+            const isActive = directorySubTab === id;
+            return (
+              <button
+                key={id}
+                type="button"
+                aria-pressed={isActive}
+                onClick={() => setDirectorySubTab(id)}
+                className={`flex-1 rounded-[28px] py-2.5 font-sans text-[10px] font-medium uppercase tracking-wide transition-colors sm:text-xs ${
+                  isActive ? categoryToggleActiveClassName : categoryToggleInactiveClassName
+                }`}
+              >
+                {label}
+              </button>
+            );
+          })}
+        </div>
+
+        <div className="mt-4 max-h-72 overflow-y-auto rounded-[32px] bg-white [-ms-overflow-style:none] scrollbar-none dark:border dark:border-white/10 dark:bg-black [&::-webkit-scrollbar]:hidden">
+          {directorySubTab === "stores" ? (
+            filteredStores.length === 0 ? (
+              <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
+                {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
+              </p>
+            ) : (
+              <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
+                {filteredStores.map((business) => (
+                  <li
+                    key={business.id}
+                    className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
+                        {business.name}
+                      </p>
+                      <p className="mt-1 truncate font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                        {business.description}
+                      </p>
+                      <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
+                        {formatDirectoryCategory(business, labels)}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openDeleteModal({ kind: "store", id: business.id, name: business.name })
+                      }
+                      className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
+                    >
+                      {labels.remove}
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )
+          ) : directoryActivitiesAndEvents.length === 0 ? (
+            <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
+              {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
+            </p>
+          ) : (
+            <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
+              {directoryActivitiesAndEvents.map((row) => {
+                if (row.type === "event") {
+                  return (
+                    <li
+                      key={`event-${row.event.id}`}
+                      className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
+                          {row.event.name}
+                        </p>
+                        <p className="mt-1 font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                          {labels.eventDates}: {row.event.start_date} – {row.event.end_date}
+                        </p>
+                        <p className="mt-0.5 font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                          {labels.operatingHours}: {row.event.open_time} – {row.event.close_time}
+                        </p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openDeleteModal({
+                            kind: "event",
+                            id: row.event.id,
+                            name: row.event.name,
+                          })
+                        }
+                        className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
+                      >
+                        {labels.remove}
+                      </button>
+                    </li>
+                  );
+                }
+
+                return (
+                  <li
+                    key={`activity-${row.name}`}
+                    className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
+                        {row.name}
+                      </p>
+                      <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
+                        {labels.activityTag}
+                      </span>
+                    </div>
+                    <button
+                      type="button"
+                      onClick={() =>
+                        openDeleteModal({ kind: "activity", name: row.name })
+                      }
+                      className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
+                    >
+                      {labels.remove}
+                    </button>
+                  </li>
+                );
+              })}
+            </ul>
+          )}
+        </div>
+      </section>
+
+      <SafeDeleteModal
+        isOpen={isDeleteModalOpen}
+        itemName={itemToDelete?.name ?? ""}
+        affectedItems={affectedItemsList}
+        onClose={closeDeleteModal}
+        onConfirm={executePermanentDelete}
+        labels={{
+          cancel: labels.cancel,
+          deleteWarningPrefix: labels.deleteWarningAffected,
+          confirmDeletionCountdown: (seconds) =>
+            labels.confirmDeletionCountdown.replace("{seconds}", String(seconds)),
+          permanentlyDeleteItem: labels.permanentlyDeleteItem,
+        }}
+      />
+
       <div className={`flex gap-2 p-1.5 ${ui.card}`}>
         {(["businesses", "events"] as const).map((tab) => {
           const isActive = adminTab === tab;
@@ -413,57 +714,6 @@ export function AccountDashboard({
 
       {adminTab === "businesses" && (
         <>
-      <section className={`p-6 ${ui.card}`}>
-        <div className="flex items-start gap-4 px-2">
-          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F9F9F9] dark:bg-white/10">
-            <ShieldCheck size={20} strokeWidth={1.5} className="text-[#222222]/70 dark:text-white/70" />
-          </span>
-          <div className="min-w-0 flex-1">
-            <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
-              {labels.directoryManagement}
-            </h2>
-            <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
-              {labels.directoryManagementSubtitle}
-            </p>
-          </div>
-        </div>
-
-        <div className="mt-5 max-h-64 overflow-y-auto rounded-[32px] bg-white [-ms-overflow-style:none] scrollbar-none dark:border dark:border-white/10 dark:bg-black [&::-webkit-scrollbar]:hidden">
-          {businesses.length === 0 ? (
-            <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
-              {labels.directoryEmpty}
-            </p>
-          ) : (
-            <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
-              {businesses.map((business) => (
-                <li
-                  key={business.id}
-                  className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
-                      {business.name}
-                    </p>
-                    <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
-                      {formatDirectoryCategory(business, labels)}
-                    </span>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => handleDeleteBusiness(business.id)}
-                    aria-label={`${labels.deleteBusinessAria} ${business.name}`}
-                    className="flex shrink-0 cursor-pointer items-center gap-1.5 rounded-full bg-[#222222] px-3.5 py-2 font-sans text-[10px] font-medium uppercase tracking-wide text-white transition-transform active:scale-95 dark:bg-white dark:text-black"
-                  >
-                    <Trash2 size={12} strokeWidth={2} aria-hidden />
-                    {labels.delete}
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-      </section>
-
       <section className={`p-8 ${ui.card}`}>
         <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
           {labels.addBusiness}

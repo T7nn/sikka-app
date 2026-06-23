@@ -25,6 +25,18 @@ export interface Translations {
   mapCategoryDropdown: string;
   manageBusinesses: string;
   manageEvents: string;
+  manageStores: string;
+  manageActivitiesEvents: string;
+  directorySearchPlaceholder: string;
+  directoryNoResults: string;
+  remove: string;
+  cancel: string;
+  deleteWarningAffected: string;
+  confirmDeletionCountdown: string;
+  permanentlyDeleteItem: string;
+  activityTag: string;
+  eventDates: string;
+  operatingHours: string;
   addEvent: string;
   addEventSubtitle: string;
   eventName: string;
@@ -148,6 +160,19 @@ export const translations: Record<Language, Translations> = {
     mapCategoryDropdown: "Category",
     manageBusinesses: "Manage Businesses",
     manageEvents: "Manage Events",
+    manageStores: "Manage Stores",
+    manageActivitiesEvents: "Manage Activities & Events",
+    directorySearchPlaceholder: "Search directory by name, category, or description…",
+    directoryNoResults: "No items match your search.",
+    remove: "Remove",
+    cancel: "Cancel",
+    deleteWarningAffected:
+      "Warning: Deleting this item will affect the following {count} stores/events:",
+    confirmDeletionCountdown: "Confirm Deletion ({seconds}s)…",
+    permanentlyDeleteItem: "Permanently Delete Item",
+    activityTag: "Activity",
+    eventDates: "Dates",
+    operatingHours: "Hours",
     addEvent: "Add Event",
     addEventSubtitle: "Publish a time-bound event to the Sikka map.",
     eventName: "Event Name",
@@ -274,6 +299,19 @@ export const translations: Record<Language, Translations> = {
     mapCategoryDropdown: "الفئة",
     manageBusinesses: "إدارة الأعمال",
     manageEvents: "إدارة الفعاليات",
+    manageStores: "إدارة المتاجر",
+    manageActivitiesEvents: "إدارة الأنشطة والفعاليات",
+    directorySearchPlaceholder: "ابحث في الدليل بالاسم أو الفئة أو الوصف…",
+    directoryNoResults: "لا توجد نتائج مطابقة لبحثك.",
+    remove: "إزالة",
+    cancel: "إلغاء",
+    deleteWarningAffected:
+      "تحذير: حذف هذا العنصر سيؤثر على {count} من المتاجر/الفعاليات التالية:",
+    confirmDeletionCountdown: "تأكيد الحذف ({seconds} ث)…",
+    permanentlyDeleteItem: "حذف العنصر نهائياً",
+    activityTag: "نشاط",
+    eventDates: "التواريخ",
+    operatingHours: "الساعات",
     addEvent: "إضافة فعالية",
     addEventSubtitle: "نشر فعالية مؤقتة على خريطة سِكّة.",
     eventName: "اسم الفعالية",

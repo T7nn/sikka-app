@@ -483,6 +483,8 @@ export default function HomePage() {
               <AccountView
                 currentUser={currentUser}
                 businesses={businesses}
+                events={events}
+                setEvents={setEvents}
                 labels={t}
                 email={email}
                 setEmail={setEmail}
