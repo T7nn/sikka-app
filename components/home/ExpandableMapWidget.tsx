@@ -5,6 +5,11 @@ import "maplibre-gl/dist/maplibre-gl.css";
 import { useTheme } from "next-themes";
 import { useEffect, useMemo, useState } from "react";
 import { businessHasMapCoordinates, type BusinessRecord } from "@/types/business";
+import {
+  filterVisibleEvents,
+  getEventStatus,
+  type EventRecord,
+} from "@/types/event";
 
 const ABU_DHABI = { longitude: 54.3773, latitude: 24.4539 };
 const DEFAULT_ZOOM = 13;
@@ -17,21 +22,32 @@ function getMapStyle(isDark: boolean): string {
 
 interface ExpandableMapWidgetProps {
   businesses: BusinessRecord[];
+  events: EventRecord[];
   mapPreviewBusiness: BusinessRecord | null;
   onMapPinSelect?: (business: BusinessRecord) => void;
 }
 
 export function ExpandableMapWidget({
   businesses,
+  events,
   mapPreviewBusiness,
   onMapPinSelect,
 }: ExpandableMapWidgetProps) {
   const { resolvedTheme } = useTheme();
   const [mounted, setMounted] = useState(false);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
+  const [now, setNow] = useState(() => new Date());
 
   useEffect(() => {
     setMounted(true);
+  }, []);
+
+  useEffect(() => {
+    const interval = window.setInterval(() => {
+      setNow(new Date());
+    }, 60_000);
+
+    return () => window.clearInterval(interval);
   }, []);
 
   useEffect(() => {
@@ -51,6 +67,7 @@ export function ExpandableMapWidget({
   };
 
   const mappableBusinesses = businesses.filter((business) => businessHasMapCoordinates(business));
+  const visibleEvents = useMemo(() => filterVisibleEvents(events, now), [events, now]);
 
   if (!mounted) {
     return <div className="relative z-10 h-full w-full bg-white dark:bg-black" />;
@@ -75,7 +92,7 @@ export function ExpandableMapWidget({
 
           return (
             <Marker
-              key={business.id}
+              key={`business-${business.id}`}
               longitude={business.longitude!}
               latitude={business.latitude!}
               anchor="center"
@@ -94,6 +111,39 @@ export function ExpandableMapWidget({
                 }`}
                 title={business.name}
               />
+            </Marker>
+          );
+        })}
+
+        {visibleEvents.map((event) => {
+          const status = getEventStatus(event, now);
+          const isOpen = status === "open";
+
+          return (
+            <Marker
+              key={`event-${event.id}`}
+              longitude={event.longitude}
+              latitude={event.latitude}
+              anchor="center"
+            >
+              <div className="relative flex h-8 w-8 items-center justify-center">
+                <span
+                  aria-hidden
+                  className={`absolute inset-0 rounded-full animate-ping ${
+                    isOpen ? "bg-green-500" : "bg-orange-500"
+                  } opacity-60`}
+                />
+                <button
+                  type="button"
+                  aria-label={`${event.name} (${isOpen ? "open" : "closed"})`}
+                  className={`relative z-10 flex h-7 w-7 cursor-pointer items-center justify-center rounded-full border-2 transition-transform hover:scale-110 active:scale-95 ${
+                    isOpen
+                      ? "border-green-700 bg-green-500"
+                      : "border-orange-700 bg-orange-500"
+                  }`}
+                  title={event.name}
+                />
+              </div>
             </Marker>
           );
         })}

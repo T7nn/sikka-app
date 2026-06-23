@@ -58,6 +58,7 @@ interface AccountViewProps {
   publishError: string | null;
   submitSuccess: boolean;
   onAddBusiness: (e: FormEvent) => void;
+  onEventsChanged?: () => void | Promise<void>;
 }
 
 const AUTH_TRANSITION = {
@@ -116,6 +117,7 @@ export function AccountView({
   publishError,
   submitSuccess,
   onAddBusiness,
+  onEventsChanged,
 }: AccountViewProps) {
   return (
     <AnimatePresence mode="wait">
@@ -159,6 +161,7 @@ export function AccountView({
             publishError={publishError}
             submitSuccess={submitSuccess}
             onAddBusiness={onAddBusiness}
+            onEventsChanged={onEventsChanged}
           />
         </motion.div>
       ) : (

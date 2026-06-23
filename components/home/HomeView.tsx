@@ -1,21 +1,17 @@
 "use client";
 
-import { BusinessCategories } from "@/components/home/BusinessCategories";
+import { CategoryFilter } from "@/components/home/CategoryFilter";
 import { ExpandableMapWidget } from "@/components/home/ExpandableMapWidget";
 import type { BusinessRecord } from "@/types/business";
-import type {
-  ActivityFilterOption,
-  CatalogCategoryFilter,
-} from "@/types/businessCategories";
+import type { MapViewFilter } from "@/types/businessCategories";
+import type { EventRecord } from "@/types/event";
 import type { Translations } from "@/types/i18n";
 
 interface HomeViewProps {
   businesses: BusinessRecord[];
-  activeCatalogCategory: CatalogCategoryFilter;
-  onCatalogCategoryChange: (category: CatalogCategoryFilter) => void;
-  activeActivityFilter: string;
-  onActivityFilterChange: (value: string) => void;
-  activityFilterOptions: ActivityFilterOption[];
+  events: EventRecord[];
+  activeMapFilter: MapViewFilter;
+  onMapFilterChange: (filter: MapViewFilter) => void;
   mapPreviewBusiness: BusinessRecord | null;
   onMapPinSelect: (business: BusinessRecord) => void;
   labels: Translations;
@@ -23,11 +19,9 @@ interface HomeViewProps {
 
 export function HomeView({
   businesses,
-  activeCatalogCategory,
-  onCatalogCategoryChange,
-  activeActivityFilter,
-  onActivityFilterChange,
-  activityFilterOptions,
+  events,
+  activeMapFilter,
+  onMapFilterChange,
   mapPreviewBusiness,
   onMapPinSelect,
   labels,
@@ -36,16 +30,14 @@ export function HomeView({
     <div className="fixed inset-x-0 top-16 bottom-20 z-0">
       <ExpandableMapWidget
         businesses={businesses}
+        events={events}
         mapPreviewBusiness={mapPreviewBusiness}
         onMapPinSelect={onMapPinSelect}
       />
 
-      <BusinessCategories
-        activeCatalogCategory={activeCatalogCategory}
-        onCatalogCategoryChange={onCatalogCategoryChange}
-        activeActivityFilter={activeActivityFilter}
-        onActivityFilterChange={onActivityFilterChange}
-        activityOptions={activityFilterOptions}
+      <CategoryFilter
+        activeFilter={activeMapFilter}
+        onFilterChange={onMapFilterChange}
         labels={labels}
       />
     </div>

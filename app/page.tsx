@@ -13,22 +13,18 @@ import { SearchView } from "@/components/search/SearchView";
 import { BottomTabBar, type TabId } from "@/components/navigation/BottomTabBar";
 import { normalizeBusiness, type BusinessRecord } from "@/types/business";
 import {
-  ALL_MAP_ACTIVITIES_FILTER,
+  filterBusinessesForMapView,
   buildActivitiesPayload,
-  buildActivityFilterOptions,
-  filterBusinessesForMap,
   getActivitiesForMainCategory,
-  getDefaultActivityFilter,
+  shouldShowEventsOnMap,
   type CatalogCategoryFilter,
   type MainCategory,
+  type MapViewFilter,
 } from "@/types/businessCategories";
+import { filterVisibleEvents, normalizeEvent, type EventRecord } from "@/types/event";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { verifyAccessKey } from "@/actions/verify-access-key";
-import {
-  translateActivityFilterOptions,
-  translations,
-  type Language,
-} from "@/types/i18n";
+import { translations, type Language } from "@/types/i18n";
 import type { CurrentUser } from "@/types/user";
 import { supabase } from "@/utils/supabase";
 
@@ -51,11 +47,10 @@ export default function HomePage() {
   const [isLoading, setIsLoading] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
   const [businesses, setBusinesses] = useState<BusinessRecord[]>([]);
+  const [events, setEvents] = useState<EventRecord[]>([]);
   const [activeCatalogCategory, setActiveCatalogCategory] =
     useState<CatalogCategoryFilter>("All");
-  const [activeActivityFilter, setActiveActivityFilter] = useState<string>(
-    ALL_MAP_ACTIVITIES_FILTER,
-  );
+  const [activeMapFilter, setActiveMapFilter] = useState<MapViewFilter>("All");
   const [mapPreviewBusiness, setMapPreviewBusiness] = useState<BusinessRecord | null>(null);
   const [selectedBusiness, setSelectedBusiness] = useState<BusinessRecord | null>(null);
 
@@ -108,9 +103,25 @@ export default function HomePage() {
     setBusinesses(normalized);
   }, []);
 
+  const fetchEvents = useCallback(async () => {
+    const { data, error } = await supabase.from("events").select("*");
+
+    if (error) {
+      console.error("Failed to fetch events:", error.message);
+      return;
+    }
+
+    const normalized = (data ?? [])
+      .map((row) => normalizeEvent(row as Record<string, unknown>))
+      .filter((event): event is EventRecord => event !== null);
+
+    setEvents(normalized);
+  }, []);
+
   useEffect(() => {
     fetchBusinesses();
-  }, [fetchBusinesses]);
+    fetchEvents();
+  }, [fetchBusinesses, fetchEvents]);
 
   const applyAuthSession = useCallback((userEmail: string) => {
     setCurrentUser({ email: userEmail, role: "admin" });
@@ -136,34 +147,31 @@ export default function HomePage() {
     return () => subscription.unsubscribe();
   }, [applyAuthSession]);
 
-  const activityFilterOptions = useMemo(
-    () =>
-      translateActivityFilterOptions(
-        buildActivityFilterOptions(activeCatalogCategory, businesses),
-        t,
-      ),
-    [activeCatalogCategory, businesses, t],
+  const mapFilteredBusinesses = useMemo(
+    () => filterBusinessesForMapView(businesses, activeMapFilter),
+    [businesses, activeMapFilter],
   );
 
-  useEffect(() => {
-    const isValid = activityFilterOptions.some(
-      (option) => option.value === activeActivityFilter,
-    );
+  const mapFilteredEvents = useMemo(() => {
+    if (!shouldShowEventsOnMap(activeMapFilter)) return [];
+    return filterVisibleEvents(events);
+  }, [events, activeMapFilter]);
 
-    if (!isValid) {
-      setActiveActivityFilter(getDefaultActivityFilter(activeCatalogCategory));
-    }
-  }, [activeCatalogCategory, activityFilterOptions, activeActivityFilter]);
-
-  const mapFilteredBusinesses = useMemo(
+  const searchFilteredBusinesses = useMemo(
     () =>
-      filterBusinessesForMap(businesses, activeCatalogCategory, activeActivityFilter),
-    [businesses, activeCatalogCategory, activeActivityFilter],
+      businesses.filter((business) => {
+        if (activeCatalogCategory === "All") return true;
+        const raw = business.main_category?.trim();
+        if (raw === "Food" || raw === "Services") {
+          return raw === activeCatalogCategory;
+        }
+        return business.type.trim().toLowerCase() === activeCatalogCategory.toLowerCase();
+      }),
+    [businesses, activeCatalogCategory],
   );
 
   const handleCatalogCategoryChange = (category: CatalogCategoryFilter) => {
     setActiveCatalogCategory(category);
-    setActiveActivityFilter(getDefaultActivityFilter(category));
   };
 
   const handleMapPinSelect = (business: BusinessRecord) => {
@@ -448,11 +456,9 @@ export default function HomePage() {
             >
               <HomeView
                 businesses={mapFilteredBusinesses}
-                activeCatalogCategory={activeCatalogCategory}
-                onCatalogCategoryChange={handleCatalogCategoryChange}
-                activeActivityFilter={activeActivityFilter}
-                onActivityFilterChange={setActiveActivityFilter}
-                activityFilterOptions={activityFilterOptions}
+                events={mapFilteredEvents}
+                activeMapFilter={activeMapFilter}
+                onMapFilterChange={setActiveMapFilter}
                 mapPreviewBusiness={mapPreviewBusiness}
                 onMapPinSelect={handleMapPinSelect}
                 labels={t}
@@ -463,7 +469,7 @@ export default function HomePage() {
           {activeTab === "search" && (
             <motion.div key="search" {...VIEW_TRANSITION} className="h-full">
               <SearchView
-                businesses={businesses}
+                businesses={searchFilteredBusinesses}
                 activeCatalogCategory={activeCatalogCategory}
                 onCatalogCategoryChange={handleCatalogCategoryChange}
                 onBusinessSelect={handleOpenBusinessDetails}
@@ -533,6 +539,7 @@ export default function HomePage() {
                 publishError={publishError}
                 submitSuccess={submitSuccess}
                 onAddBusiness={handleAddBusiness}
+                onEventsChanged={fetchEvents}
               />
             </motion.div>
           )}

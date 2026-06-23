@@ -5,6 +5,8 @@ import {
   type ActivityFilterOption,
   type CatalogCategoryFilter,
   type MainCategory,
+  type MapViewDropdownOption,
+  type MapViewFilter,
 } from "@/types/businessCategories";
 
 export type Language = "en" | "ar";
@@ -18,7 +20,20 @@ export interface Translations {
   services: string;
   all: string;
   food: string;
+  events: string;
   catalogServices: string;
+  mapCategoryDropdown: string;
+  manageBusinesses: string;
+  manageEvents: string;
+  addEvent: string;
+  addEventSubtitle: string;
+  eventName: string;
+  startDate: string;
+  endDate: string;
+  openTime: string;
+  closeTime: string;
+  publishEvent: string;
+  eventPublished: string;
   allFood: string;
   allServices: string;
   allActivities: string;
@@ -128,7 +143,20 @@ export const translations: Record<Language, Translations> = {
     services: "Services",
     all: "All",
     food: "Food",
+    events: "Events",
     catalogServices: "Services",
+    mapCategoryDropdown: "Category",
+    manageBusinesses: "Manage Businesses",
+    manageEvents: "Manage Events",
+    addEvent: "Add Event",
+    addEventSubtitle: "Publish a time-bound event to the Sikka map.",
+    eventName: "Event Name",
+    startDate: "Start Date",
+    endDate: "End Date",
+    openTime: "Open Time",
+    closeTime: "Close Time",
+    publishEvent: "Publish Event",
+    eventPublished: "Event published — now live on the map.",
     allFood: "All Food",
     allServices: "All Services",
     allActivities: "All Activities",
@@ -241,7 +269,20 @@ export const translations: Record<Language, Translations> = {
     services: "خدمات",
     all: "الكل",
     food: "طعام",
+    events: "فعاليات",
     catalogServices: "خدمات",
+    mapCategoryDropdown: "الفئة",
+    manageBusinesses: "إدارة الأعمال",
+    manageEvents: "إدارة الفعاليات",
+    addEvent: "إضافة فعالية",
+    addEventSubtitle: "نشر فعالية مؤقتة على خريطة سِكّة.",
+    eventName: "اسم الفعالية",
+    startDate: "تاريخ البداية",
+    endDate: "تاريخ النهاية",
+    openTime: "وقت الافتتاح",
+    closeTime: "وقت الإغلاق",
+    publishEvent: "نشر الفعالية",
+    eventPublished: "تم نشر الفعالية — متاحة الآن على الخريطة.",
     allFood: "كل الطعام",
     allServices: "كل الخدمات",
     allActivities: "كل الأنشطة",
@@ -363,6 +404,16 @@ export function getCategoryLabel(
 ): string {
   if (id === "all") return t.all;
   return t[id];
+}
+
+export function getMapViewFilterLabel(
+  filter: MapViewDropdownOption | MapViewFilter,
+  t: Translations,
+): string {
+  if (filter === "All") return t.all;
+  if (filter === "Events") return t.events;
+  if (filter === "Food") return t.food;
+  return t.catalogServices;
 }
 
 export function getCatalogCategoryLabel(

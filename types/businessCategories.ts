@@ -4,7 +4,13 @@ export type MainCategory = "Food" | "Services";
 
 export type CatalogCategoryFilter = "All" | MainCategory;
 
+export type MapViewFilter = "All" | "Events" | MainCategory;
+
 export const MAIN_CATEGORIES: MainCategory[] = ["Food", "Services"];
+
+export const MAP_VIEW_DROPDOWN_OPTIONS = ["Events", "Food", "Services"] as const;
+
+export type MapViewDropdownOption = (typeof MAP_VIEW_DROPDOWN_OPTIONS)[number];
 
 export const CATALOG_CATEGORY_FILTERS: CatalogCategoryFilter[] = [
   "All",
@@ -166,6 +172,23 @@ export function buildActivityFilterOptions(
     ...predefined.map((activity) => ({ value: activity, label: activity })),
     ...custom.map((activity) => ({ value: activity, label: activity })),
   ];
+}
+
+export function shouldShowBusinessesOnMap(filter: MapViewFilter): boolean {
+  return filter === "All" || filter === "Food" || filter === "Services";
+}
+
+export function shouldShowEventsOnMap(filter: MapViewFilter): boolean {
+  return filter === "All" || filter === "Events";
+}
+
+export function filterBusinessesForMapView(
+  businesses: BusinessRecord[],
+  filter: MapViewFilter,
+): BusinessRecord[] {
+  if (filter === "All") return businesses;
+  if (filter === "Events") return [];
+  return businesses.filter((business) => businessMatchesCatalogCategory(business, filter));
 }
 
 export function filterBusinessesForMap(

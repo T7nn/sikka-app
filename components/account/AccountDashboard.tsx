@@ -3,6 +3,7 @@
 import { AnimatePresence, motion } from "framer-motion";
 import { Check, Copy, ImagePlus, KeyRound, ShieldCheck, Trash2, X } from "lucide-react";
 import { useId, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import type { BusinessRecord } from "@/types/business";
 import {
   getActivitiesForMainCategory,
@@ -39,6 +40,42 @@ const fieldLabelClassName =
 
 function formatDirectoryCategory(business: BusinessRecord, labels: Translations): string {
   return getCatalogCategoryLabel(resolveBusinessMainCategory(business), labels);
+}
+
+type AdminTab = "businesses" | "events";
+
+interface SyncedDateFieldProps {
+  id: string;
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  disabled?: boolean;
+}
+
+function SyncedDateField({ id, label, value, onChange, disabled }: SyncedDateFieldProps) {
+  return (
+    <label className="block">
+      <span className={fieldLabelClassName}>{label}</span>
+      <div className="flex flex-col gap-2 sm:flex-row">
+        <input
+          id={id}
+          type="date"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          disabled={disabled}
+          className={dashboardInputClassName}
+        />
+        <input
+          type="text"
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+          placeholder="YYYY-MM-DD"
+          disabled={disabled}
+          className={dashboardInputClassName}
+        />
+      </div>
+    </label>
+  );
 }
 
 interface ActivityCheckboxProps {
@@ -122,6 +159,7 @@ interface AccountDashboardProps {
   publishError: string | null;
   submitSuccess: boolean;
   onAddBusiness: (e: FormEvent) => void;
+  onEventsChanged?: () => void | Promise<void>;
 }
 
 export function AccountDashboard({
@@ -162,6 +200,7 @@ export function AccountDashboard({
   publishError,
   submitSuccess,
   onAddBusiness,
+  onEventsChanged,
 }: AccountDashboardProps) {
   const logoInputId = useId();
   const otherActivityInputId = useId();
@@ -174,6 +213,19 @@ export function AccountDashboard({
   const [keyError, setKeyError] = useState<string | null>(null);
   const [isGeneratingKey, setIsGeneratingKey] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
+
+  const [adminTab, setAdminTab] = useState<AdminTab>("businesses");
+  const [eventName, setEventName] = useState("");
+  const [eventDescription, setEventDescription] = useState("");
+  const [eventGoogleMapsUrl, setEventGoogleMapsUrl] = useState("");
+  const [eventStartDate, setEventStartDate] = useState("");
+  const [eventEndDate, setEventEndDate] = useState("");
+  const [eventOpenTime, setEventOpenTime] = useState("");
+  const [eventCloseTime, setEventCloseTime] = useState("");
+  const [isSubmittingEvent, setIsSubmittingEvent] = useState(false);
+  const [isExtractingEventLocation, setIsExtractingEventLocation] = useState(false);
+  const [eventPublishError, setEventPublishError] = useState<string | null>(null);
+  const [eventSubmitSuccess, setEventSubmitSuccess] = useState(false);
 
   const handleLogoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -248,6 +300,75 @@ export function AccountDashboard({
     onBusinessDeleted?.(id);
   };
 
+  const resetEventForm = () => {
+    setEventName("");
+    setEventDescription("");
+    setEventGoogleMapsUrl("");
+    setEventStartDate("");
+    setEventEndDate("");
+    setEventOpenTime("");
+    setEventCloseTime("");
+    setEventPublishError(null);
+  };
+
+  const handleAddEvent = async (event: FormEvent) => {
+    event.preventDefault();
+
+    if (
+      !eventName.trim() ||
+      !eventDescription.trim() ||
+      !eventGoogleMapsUrl.trim() ||
+      !eventStartDate ||
+      !eventEndDate ||
+      !eventOpenTime ||
+      !eventCloseTime
+    ) {
+      return;
+    }
+
+    setEventPublishError(null);
+    setEventSubmitSuccess(false);
+    setIsExtractingEventLocation(true);
+
+    const extraction = await extractCoordinatesFromMapsUrl(eventGoogleMapsUrl.trim());
+
+    setIsExtractingEventLocation(false);
+
+    if (!extraction.success) {
+      setEventPublishError(extraction.error ?? labels.publishErrorMapsExtract);
+      return;
+    }
+
+    setIsSubmittingEvent(true);
+
+    const { error } = await supabase.from("events").insert({
+      name: eventName.trim(),
+      description: eventDescription.trim(),
+      google_maps_url: eventGoogleMapsUrl.trim(),
+      latitude: extraction.latitude,
+      longitude: extraction.longitude,
+      start_date: eventStartDate,
+      end_date: eventEndDate,
+      open_time: eventOpenTime,
+      close_time: eventCloseTime,
+    });
+
+    setIsSubmittingEvent(false);
+
+    if (error) {
+      console.error("Failed to add event:", error.message);
+      setEventPublishError(error.message);
+      return;
+    }
+
+    resetEventForm();
+    setEventSubmitSuccess(true);
+    await onEventsChanged?.();
+    setTimeout(() => setEventSubmitSuccess(false), 3000);
+  };
+
+  const isEventBusy = isSubmittingEvent || isExtractingEventLocation;
+
   return (
     <div className="flex h-full flex-col gap-6 overflow-y-auto pb-4 [-ms-overflow-style:none] scrollbar-none [&::-webkit-scrollbar]:hidden">
       {onSignOut && (
@@ -269,6 +390,29 @@ export function AccountDashboard({
         </p>
       </div>
 
+      <div className={`flex gap-2 p-1.5 ${ui.card}`}>
+        {(["businesses", "events"] as const).map((tab) => {
+          const isActive = adminTab === tab;
+          const label = tab === "businesses" ? labels.manageBusinesses : labels.manageEvents;
+
+          return (
+            <button
+              key={tab}
+              type="button"
+              aria-pressed={isActive}
+              onClick={() => setAdminTab(tab)}
+              className={`flex-1 rounded-[32px] py-3 font-sans text-xs font-medium uppercase tracking-wide transition-colors ${
+                isActive ? categoryToggleActiveClassName : categoryToggleInactiveClassName
+              }`}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {adminTab === "businesses" && (
+        <>
       <section className={`p-6 ${ui.card}`}>
         <div className="flex items-start gap-4 px-2">
           <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#F9F9F9] dark:bg-white/10">
@@ -567,6 +711,131 @@ export function AccountDashboard({
           )}
         </AnimatePresence>
       </section>
+        </>
+      )}
+
+      {adminTab === "events" && (
+        <section className={`p-8 ${ui.card}`}>
+          <h2 className="font-sans text-base font-semibold text-[#222222] dark:text-white">
+            {labels.addEvent}
+          </h2>
+          <p className="mt-2 text-sm leading-relaxed text-[#222222]/55 dark:text-white/55">
+            {labels.addEventSubtitle}
+          </p>
+
+          <form onSubmit={handleAddEvent} className="mt-6 flex flex-col gap-4">
+            <label className="block">
+              <span className={fieldLabelClassName}>{labels.eventName}</span>
+              <input
+                type="text"
+                value={eventName}
+                onChange={(e) => setEventName(e.target.value)}
+                required
+                disabled={isEventBusy}
+                className={dashboardInputClassName}
+              />
+            </label>
+
+            <label className="block">
+              <span className={fieldLabelClassName}>{labels.description}</span>
+              <textarea
+                value={eventDescription}
+                onChange={(e) => setEventDescription(e.target.value)}
+                placeholder={labels.descriptionPlaceholder}
+                required
+                rows={3}
+                disabled={isEventBusy}
+                className={`${dashboardInputClassName} min-h-[96px] resize-none`}
+              />
+            </label>
+
+            <label className="block">
+              <span className={fieldLabelClassName}>{labels.googleMapsLink}</span>
+              <input
+                type="url"
+                value={eventGoogleMapsUrl}
+                onChange={(e) => setEventGoogleMapsUrl(e.target.value)}
+                placeholder="https://maps.app.goo.gl/…"
+                required
+                disabled={isEventBusy}
+                className={dashboardInputClassName}
+              />
+            </label>
+
+            <SyncedDateField
+              id="event-start-date"
+              label={labels.startDate}
+              value={eventStartDate}
+              onChange={setEventStartDate}
+              disabled={isEventBusy}
+            />
+
+            <SyncedDateField
+              id="event-end-date"
+              label={labels.endDate}
+              value={eventEndDate}
+              onChange={setEventEndDate}
+              disabled={isEventBusy}
+            />
+
+            <label className="block">
+              <span className={fieldLabelClassName}>{labels.openTime}</span>
+              <input
+                type="time"
+                value={eventOpenTime}
+                onChange={(e) => setEventOpenTime(e.target.value)}
+                required
+                disabled={isEventBusy}
+                className={dashboardInputClassName}
+              />
+            </label>
+
+            <label className="block">
+              <span className={fieldLabelClassName}>{labels.closeTime}</span>
+              <input
+                type="time"
+                value={eventCloseTime}
+                onChange={(e) => setEventCloseTime(e.target.value)}
+                required
+                disabled={isEventBusy}
+                className={dashboardInputClassName}
+              />
+            </label>
+
+            {eventPublishError && (
+              <p className="rounded-[32px] px-4 py-3 text-center text-sm font-semibold text-[#222222] dark:border dark:border-white/10 dark:bg-black dark:text-white">
+                {eventPublishError}
+              </p>
+            )}
+
+            <button
+              type="submit"
+              disabled={isEventBusy}
+              className="mt-2 w-full rounded-full bg-[#222222] py-3.5 font-sans text-xs font-medium uppercase tracking-wide text-white transition-opacity hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-50 dark:bg-white dark:text-black"
+            >
+              {isExtractingEventLocation
+                ? labels.extractingLocation
+                : isSubmittingEvent
+                  ? labels.publishing
+                  : labels.publishEvent}
+            </button>
+          </form>
+
+          <AnimatePresence>
+            {eventSubmitSuccess && (
+              <motion.p
+                initial={{ opacity: 0, y: 6 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -6 }}
+                transition={{ duration: 0.25, ease: "easeOut" }}
+                className="mt-4 text-center font-sans text-sm text-[#222222]/70 dark:text-white/70"
+              >
+                {labels.eventPublished}
+              </motion.p>
+            )}
+          </AnimatePresence>
+        </section>
+      )}
 
       <section className={`p-6 ${ui.card}`}>
         <div className="flex items-start gap-4">
