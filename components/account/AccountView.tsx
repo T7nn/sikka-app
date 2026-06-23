@@ -68,6 +68,7 @@ interface AccountViewProps {
   submitSuccess: boolean;
   onAddBusiness: (e: FormEvent) => void;
   onEventsChanged?: () => void | Promise<void>;
+  onDirectoryRefresh?: () => void | Promise<void>;
 }
 
 const AUTH_TRANSITION = {
@@ -135,6 +136,7 @@ export function AccountView({
   submitSuccess,
   onAddBusiness,
   onEventsChanged,
+  onDirectoryRefresh,
 }: AccountViewProps) {
   return (
     <AnimatePresence mode="wait">
@@ -187,6 +189,7 @@ export function AccountView({
             submitSuccess={submitSuccess}
             onAddBusiness={onAddBusiness}
             onEventsChanged={onEventsChanged}
+            onDirectoryRefresh={onDirectoryRefresh}
           />
         </motion.div>
       ) : (

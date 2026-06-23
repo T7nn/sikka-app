@@ -94,6 +94,7 @@ export default function HomePage() {
   }, [language]);
 
   const fetchBusinesses = useCallback(async () => {
+    // Admin/global catalog: fetch every business — no user_id filter.
     const { data, error } = await supabase.from("businesses").select("*");
 
     if (error) {
@@ -109,6 +110,7 @@ export default function HomePage() {
   }, []);
 
   const fetchEvents = useCallback(async () => {
+    // Admin/global catalog: fetch every event — no user_id filter.
     const { data, error } = await supabase.from("events").select("*");
 
     if (error) {
@@ -123,10 +125,13 @@ export default function HomePage() {
     setEvents(normalized);
   }, []);
 
-  useEffect(() => {
-    fetchBusinesses();
-    fetchEvents();
+  const refreshDirectoryData = useCallback(async () => {
+    await Promise.all([fetchBusinesses(), fetchEvents()]);
   }, [fetchBusinesses, fetchEvents]);
+
+  useEffect(() => {
+    void refreshDirectoryData();
+  }, [refreshDirectoryData]);
 
   const applyAuthSession = useCallback((userEmail: string) => {
     setCurrentUser({ email: userEmail, role: "admin" });
@@ -450,7 +455,7 @@ export default function HomePage() {
 
   return (
     <div
-      className={`flex min-h-dvh flex-col bg-white dark:bg-black ${
+      className={`flex h-[100dvh] min-h-[100dvh] flex-col bg-white dark:bg-black ${
         language === "ar" ? "font-arabic" : ""
       }`}
     >
@@ -465,7 +470,9 @@ export default function HomePage() {
       <main
         id="main-content"
         className={`relative flex min-h-0 flex-1 flex-col bg-white dark:bg-black ${
-          activeTab === "home" ? "overflow-hidden px-0 pb-0" : "px-6 pb-4"
+          activeTab === "home"
+            ? "overflow-hidden px-0 pb-0"
+            : "px-6 pb-[calc(5.5rem+env(safe-area-inset-bottom))]"
         }`}
         aria-label={`${tabLabels[activeTab]} view`}
       >
@@ -576,6 +583,7 @@ export default function HomePage() {
                 submitSuccess={submitSuccess}
                 onAddBusiness={handleAddBusiness}
                 onEventsChanged={fetchEvents}
+                onDirectoryRefresh={refreshDirectoryData}
               />
             </motion.div>
           )}

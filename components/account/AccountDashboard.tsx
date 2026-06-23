@@ -1,12 +1,22 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, Copy, ImagePlus, KeyRound, Search, ShieldCheck, X } from "lucide-react";
-import { useId, useMemo, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
+import { Check, ChevronDown, Copy, ImagePlus, KeyRound, Search, ShieldCheck, X } from "lucide-react";
+import { useEffect, useId, useMemo, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { EventDateRangePicker } from "@/components/account/EventDateRangePicker";
 import { MapsLocationInput } from "@/components/account/MapsLocationInput";
 import { SafeDeleteModal } from "@/components/account/SafeDeleteModal";
+import {
+  buildDirectorySubTypeOptions,
+  DIRECTORY_ENTITY_TYPES,
+  DIRECTORY_PRIMARY_FILTERS,
+  DIRECTORY_SUBTYPE_ALL,
+  filterDirectoryList,
+  getDefaultEntityForPrimary,
+  type DirectoryEntityType,
+  type DirectoryPrimaryFilter,
+} from "@/types/adminDirectoryFilters";
 import type { BusinessRecord } from "@/types/business";
 import {
   EVENT_SUB_TYPES,
@@ -54,7 +64,34 @@ function formatDirectoryCategory(business: BusinessRecord, labels: Translations)
 }
 
 type AdminTab = "businesses" | "events";
-type DirectorySubTab = "stores" | "activities" | "events";
+
+const directoryPrimarySelectClassName =
+  "w-full appearance-none rounded-3xl border border-[#222222]/10 bg-white/90 px-5 py-3.5 font-sans text-sm font-medium text-[#222222] shadow-soft-airy backdrop-blur-md outline-none dark:border-white/10 dark:bg-black/90 dark:text-white";
+
+const directorySecondarySelectClassName =
+  "w-full appearance-none rounded-3xl border border-[#222222]/10 bg-white/90 px-4 py-3 font-sans text-xs font-medium uppercase tracking-wide text-[#222222] shadow-soft-airy backdrop-blur-md outline-none dark:border-white/10 dark:bg-black/90 dark:text-white";
+
+function getDirectorySubTypeLabel(
+  value: string,
+  primary: DirectoryPrimaryFilter,
+  labels: Translations,
+): string {
+  if (value === DIRECTORY_SUBTYPE_ALL) return labels.filterAll;
+  if (primary === "Events") return getEventSubTypeLabel(value, labels);
+  return getActivityLabel(value, labels);
+}
+
+function getDirectoryEntityLabel(entity: DirectoryEntityType, labels: Translations): string {
+  if (entity === "Store") return labels.entityStore;
+  if (entity === "Service") return labels.entityService;
+  return labels.entityEvent;
+}
+
+function getDirectoryPrimaryLabel(primary: DirectoryPrimaryFilter, labels: Translations): string {
+  if (primary === "Food") return labels.food;
+  if (primary === "Services") return labels.catalogServices;
+  return labels.events;
+}
 
 interface ActivityCheckboxProps {
   id: string;
@@ -146,6 +183,7 @@ interface AccountDashboardProps {
   submitSuccess: boolean;
   onAddBusiness: (e: FormEvent) => void;
   onEventsChanged?: () => void | Promise<void>;
+  onDirectoryRefresh?: () => void | Promise<void>;
 }
 
 export function AccountDashboard({
@@ -195,7 +233,11 @@ export function AccountDashboard({
   submitSuccess,
   onAddBusiness,
   onEventsChanged,
+  onDirectoryRefresh,
 }: AccountDashboardProps) {
+  const primaryFilterId = useId();
+  const entityFilterId = useId();
+  const subTypeFilterId = useId();
   const logoInputId = useId();
   const otherActivityInputId = useId();
   const hasPhysicalLocationId = useId();
@@ -225,56 +267,52 @@ export function AccountDashboard({
   const [eventPublishError, setEventPublishError] = useState<string | null>(null);
   const [eventSubmitSuccess, setEventSubmitSuccess] = useState(false);
 
-  const [directorySubTab, setDirectorySubTab] = useState<DirectorySubTab>("stores");
+  const [primaryFilter, setPrimaryFilter] = useState<DirectoryPrimaryFilter>("Food");
+  const [entityType, setEntityType] = useState<DirectoryEntityType>("Store");
+  const [subType, setSubType] = useState(DIRECTORY_SUBTYPE_ALL);
   const [directorySearch, setDirectorySearch] = useState("");
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
   const [itemToDelete, setItemToDelete] = useState<DirectoryDeleteTarget | null>(null);
   const [affectedItemsList, setAffectedItemsList] = useState<string[]>([]);
 
-  const filteredStores = useMemo(() => {
-    const query = directorySearch.trim().toLowerCase();
-    if (!query) return businesses;
+  useEffect(() => {
+    void onDirectoryRefresh?.();
+  }, [onDirectoryRefresh]);
 
-    return businesses.filter((business) => {
-      const category = formatDirectoryCategory(business, labels).toLowerCase();
-      const activities = (business.activities ?? []).join(" ").toLowerCase();
+  const subTypeOptions = useMemo(
+    () => buildDirectorySubTypeOptions(primaryFilter, entityType, businesses),
+    [primaryFilter, entityType, businesses],
+  );
 
-      return (
-        business.name.toLowerCase().includes(query) ||
-        business.description.toLowerCase().includes(query) ||
-        category.includes(query) ||
-        activities.includes(query)
-      );
-    });
-  }, [businesses, directorySearch, labels]);
+  const filteredDirectoryItems = useMemo(
+    () =>
+      filterDirectoryList(
+        businesses,
+        events,
+        primaryFilter,
+        entityType,
+        subType,
+        directorySearch,
+      ),
+    [businesses, events, primaryFilter, entityType, subType, directorySearch],
+  );
 
-  const filteredActivities = useMemo(() => {
-    const activityNames = new Set<string>();
-    for (const business of businesses) {
-      for (const activity of business.activities ?? []) {
-        const trimmed = activity.trim();
-        if (trimmed) activityNames.add(trimmed);
-      }
+  const handlePrimaryFilterChange = (value: DirectoryPrimaryFilter) => {
+    setPrimaryFilter(value);
+    setEntityType(getDefaultEntityForPrimary(value));
+    setSubType(DIRECTORY_SUBTYPE_ALL);
+  };
+
+  const handleEntityTypeChange = (value: DirectoryEntityType) => {
+    setEntityType(value);
+    setSubType(DIRECTORY_SUBTYPE_ALL);
+  };
+
+  useEffect(() => {
+    if (!subTypeOptions.includes(subType)) {
+      setSubType(DIRECTORY_SUBTYPE_ALL);
     }
-
-    const rows = [...activityNames].sort();
-    const query = directorySearch.trim().toLowerCase();
-    if (!query) return rows;
-
-    return rows.filter((name) => name.toLowerCase().includes(query));
-  }, [businesses, directorySearch]);
-
-  const filteredEvents = useMemo(() => {
-    const query = directorySearch.trim().toLowerCase();
-    if (!query) return events;
-
-    return events.filter(
-      (event) =>
-        event.name.toLowerCase().includes(query) ||
-        event.description.toLowerCase().includes(query) ||
-        (event.event_type?.toLowerCase().includes(query) ?? false),
-    );
-  }, [events, directorySearch]);
+  }, [subType, subTypeOptions]);
 
   const handleLogoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -552,141 +590,163 @@ export function AccountDashboard({
           />
         </div>
 
-        <div className={`mt-4 flex gap-2 p-1.5 rounded-[32px] ${ui.mutedSurface}`}>
-          {(
-            [
-              { id: "stores" as const, label: labels.manageStores },
-              { id: "activities" as const, label: labels.manageActivities },
-              { id: "events" as const, label: labels.manageEvents },
-            ] as const
-          ).map(({ id, label }) => {
-            const isActive = directorySubTab === id;
-            return (
-              <button
-                key={id}
-                type="button"
-                aria-pressed={isActive}
-                onClick={() => setDirectorySubTab(id)}
-                className={`flex-1 rounded-[28px] py-2.5 font-sans text-[10px] font-medium uppercase tracking-wide transition-colors sm:text-xs ${
-                  isActive ? categoryToggleActiveClassName : categoryToggleInactiveClassName
-                }`}
+        <div className="mt-5 flex flex-col gap-3">
+          <label className="block" htmlFor={primaryFilterId}>
+            <span className={fieldLabelClassName}>{labels.directoryPrimaryFilter}</span>
+            <div className="relative mt-2">
+              <select
+                id={primaryFilterId}
+                value={primaryFilter}
+                onChange={(event) =>
+                  handlePrimaryFilterChange(event.target.value as DirectoryPrimaryFilter)
+                }
+                className={directoryPrimarySelectClassName}
               >
-                {label}
-              </button>
-            );
-          })}
+                {DIRECTORY_PRIMARY_FILTERS.map((option) => (
+                  <option key={option} value={option}>
+                    {getDirectoryPrimaryLabel(option, labels)}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown
+                size={16}
+                strokeWidth={1.75}
+                aria-hidden
+                className="pointer-events-none absolute inset-e-4 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
+              />
+            </div>
+          </label>
+
+          <div className="grid grid-cols-2 gap-3">
+            <label className="block" htmlFor={entityFilterId}>
+              <span className={fieldLabelClassName}>{labels.directoryEntityFilter}</span>
+              <div className="relative mt-2">
+                <select
+                  id={entityFilterId}
+                  value={entityType}
+                  onChange={(event) =>
+                    handleEntityTypeChange(event.target.value as DirectoryEntityType)
+                  }
+                  className={directorySecondarySelectClassName}
+                >
+                  {DIRECTORY_ENTITY_TYPES.map((option) => (
+                    <option key={option} value={option}>
+                      {getDirectoryEntityLabel(option, labels)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  strokeWidth={1.75}
+                  aria-hidden
+                  className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
+                />
+              </div>
+            </label>
+
+            <label className="block" htmlFor={subTypeFilterId}>
+              <span className={fieldLabelClassName}>{labels.directoryTypeFilter}</span>
+              <div className="relative mt-2">
+                <select
+                  id={subTypeFilterId}
+                  value={subType}
+                  onChange={(event) => setSubType(event.target.value)}
+                  className={directorySecondarySelectClassName}
+                >
+                  {subTypeOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {getDirectorySubTypeLabel(option, primaryFilter, labels)}
+                    </option>
+                  ))}
+                </select>
+                <ChevronDown
+                  size={14}
+                  strokeWidth={1.75}
+                  aria-hidden
+                  className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
+                />
+              </div>
+            </label>
+          </div>
         </div>
 
         <div className="mt-4 max-h-72 overflow-y-auto rounded-[32px] bg-white [-ms-overflow-style:none] scrollbar-none dark:border dark:border-white/10 dark:bg-black [&::-webkit-scrollbar]:hidden">
-          {directorySubTab === "stores" ? (
-            filteredStores.length === 0 ? (
-              <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
-                {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
-              </p>
-            ) : (
-              <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
-                {filteredStores.map((business) => (
+          {filteredDirectoryItems.length === 0 ? (
+            <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
+              {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
+            </p>
+          ) : (
+            <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
+              {filteredDirectoryItems.map((item) => {
+                if (item.kind === "store") {
+                  const business = item.business;
+                  return (
+                    <li
+                      key={business.id}
+                      className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
+                          {business.name}
+                        </p>
+                        <p className="mt-1 truncate font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                          {business.description}
+                        </p>
+                        <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
+                          {formatDirectoryCategory(business, labels)}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() =>
+                          openDeleteModal({ kind: "store", id: business.id, name: business.name })
+                        }
+                        className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
+                      >
+                        {labels.remove}
+                      </button>
+                    </li>
+                  );
+                }
+
+                const event = item.event;
+                return (
                   <li
-                    key={business.id}
+                    key={`event-${event.id}`}
                     className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
                   >
                     <div className="min-w-0 flex-1">
                       <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
-                        {business.name}
+                        {event.name}
                       </p>
-                      <p className="mt-1 truncate font-sans text-xs text-[#222222]/55 dark:text-white/55">
-                        {business.description}
+                      <p className="mt-1 font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                        {labels.eventDates}: {event.start_date} – {event.end_date}
                       </p>
-                      <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
-                        {formatDirectoryCategory(business, labels)}
-                      </span>
+                      <p className="mt-0.5 font-sans text-xs text-[#222222]/55 dark:text-white/55">
+                        {labels.operatingHours}: {event.open_time} – {event.close_time}
+                      </p>
+                      {event.event_type && (
+                        <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
+                          {getEventSubTypeLabel(event.event_type, labels)}
+                        </span>
+                      )}
                     </div>
                     <button
                       type="button"
                       onClick={() =>
-                        openDeleteModal({ kind: "store", id: business.id, name: business.name })
+                        openDeleteModal({
+                          kind: "event",
+                          id: event.id,
+                          name: event.name,
+                        })
                       }
                       className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
                     >
                       {labels.remove}
                     </button>
                   </li>
-                ))}
-              </ul>
-            )
-          ) : directorySubTab === "activities" ? (
-            filteredActivities.length === 0 ? (
-              <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
-                {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
-              </p>
-            ) : (
-              <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
-                {filteredActivities.map((name) => (
-                  <li
-                    key={`activity-${name}`}
-                    className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
-                  >
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
-                        {name}
-                      </p>
-                      <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
-                        {labels.activityTag}
-                      </span>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => openDeleteModal({ kind: "activity", name })}
-                      className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
-                    >
-                      {labels.remove}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            )
-          ) : filteredEvents.length === 0 ? (
-            <p className="px-5 py-8 text-center font-sans text-sm text-[#222222]/45 dark:text-white/45">
-              {directorySearch.trim() ? labels.directoryNoResults : labels.directoryEmpty}
-            </p>
-          ) : (
-            <ul className="divide-y divide-[#222222]/10 dark:divide-white/10">
-              {filteredEvents.map((event) => (
-                <li
-                  key={`event-${event.id}`}
-                  className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
-                >
-                  <div className="min-w-0 flex-1">
-                    <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
-                      {event.name}
-                    </p>
-                    <p className="mt-1 font-sans text-xs text-[#222222]/55 dark:text-white/55">
-                      {labels.eventDates}: {event.start_date} – {event.end_date}
-                    </p>
-                    <p className="mt-0.5 font-sans text-xs text-[#222222]/55 dark:text-white/55">
-                      {labels.operatingHours}: {event.open_time} – {event.close_time}
-                    </p>
-                    {event.event_type && (
-                      <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
-                        {getEventSubTypeLabel(event.event_type, labels)}
-                      </span>
-                    )}
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() =>
-                      openDeleteModal({
-                        kind: "event",
-                        id: event.id,
-                        name: event.name,
-                      })
-                    }
-                    className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
-                  >
-                    {labels.remove}
-                  </button>
-                </li>
-              ))}
+                );
+              })}
             </ul>
           )}
         </div>

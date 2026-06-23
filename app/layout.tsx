@@ -39,7 +39,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
       </head>
       <body
-        className={`${josefinSans.variable} ${estedad.variable} font-sans bg-white text-[#222222] antialiased min-h-screen dark:bg-black dark:text-white`}
+        className={`${josefinSans.variable} ${estedad.variable} font-sans bg-white text-[#222222] antialiased min-h-[100dvh] dark:bg-black dark:text-white`}
       >
         <ThemeProvider>
           {children}

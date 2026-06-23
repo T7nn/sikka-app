@@ -138,6 +138,13 @@ export interface Translations {
   restrictedAccessBanner: string;
   directoryManagement: string;
   directoryManagementSubtitle: string;
+  directoryPrimaryFilter: string;
+  directoryEntityFilter: string;
+  directoryTypeFilter: string;
+  entityStore: string;
+  entityService: string;
+  entityEvent: string;
+  filterAll: string;
   directoryEmpty: string;
   delete: string;
   deleteConfirm: string;
@@ -296,8 +303,15 @@ export const translations: Record<Language, Translations> = {
       "RESTRICTED ACCESS: SIKKA DIRECTORY MANAGEMENT. This terminal is strictly for authorized administrators.",
     directoryManagement: "Directory Management",
     directoryManagementSubtitle:
-      "View, add, and remove businesses on the Sikka map and directory.",
-    directoryEmpty: "No businesses in the directory yet.",
+      "Browse, filter, and remove any store, service, or event in the Sikka catalog.",
+    directoryPrimaryFilter: "Category",
+    directoryEntityFilter: "Entity",
+    directoryTypeFilter: "Type",
+    entityStore: "Store",
+    entityService: "Service",
+    entityEvent: "Event",
+    filterAll: "All",
+    directoryEmpty: "No items in the directory yet.",
     delete: "Delete",
     deleteConfirm: "Are you sure you want to delete this business? This cannot be undone.",
     deleteErrorAlert: "Unable to delete this business. Please try again.",
@@ -451,8 +465,16 @@ export const translations: Record<Language, Translations> = {
     restrictedAccessBanner:
       "وصول مقيد: إدارة دليل سِكّة. هذه الوحدة مخصصة للمسؤولين المصرّح لهم فقط.",
     directoryManagement: "إدارة الدليل",
-    directoryManagementSubtitle: "عرض الأعمال وإضافتها وإزالتها من خريطة ودليل سِكّة.",
-    directoryEmpty: "لا توجد أعمال في الدليل بعد.",
+    directoryManagementSubtitle:
+      "تصفح وفلترة وإزالة أي متجر أو خدمة أو فعالية في دليل سِكّة.",
+    directoryPrimaryFilter: "الفئة",
+    directoryEntityFilter: "الكيان",
+    directoryTypeFilter: "النوع",
+    entityStore: "متجر",
+    entityService: "خدمة",
+    entityEvent: "فعالية",
+    filterAll: "الكل",
+    directoryEmpty: "لا توجد عناصر في الدليل بعد.",
     delete: "حذف",
     deleteConfirm: "هل أنت متأكد من حذف هذا العمل؟ لا يمكن التراجع عن هذا الإجراء.",
     deleteErrorAlert: "تعذّر حذف هذا العمل. يُرجى المحاولة مرة أخرى.",
