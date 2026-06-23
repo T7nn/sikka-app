@@ -1,19 +1,16 @@
 "use client";
 
 import { AnimatePresence, motion } from "framer-motion";
-import { Check, ChevronDown, Copy, ImagePlus, KeyRound, Search, ShieldCheck, X } from "lucide-react";
+import { Check, Copy, ImagePlus, KeyRound, Search, ShieldCheck, X } from "lucide-react";
 import { useEffect, useId, useMemo, useState, type ChangeEvent, type Dispatch, type FormEvent, type SetStateAction } from "react";
 import { extractCoordinatesFromMapsUrl } from "@/actions/extract-coordinates";
 import { EventDateRangePicker } from "@/components/account/EventDateRangePicker";
 import { MapsLocationInput } from "@/components/account/MapsLocationInput";
 import { SafeDeleteModal } from "@/components/account/SafeDeleteModal";
+import { DirectoryFilter, type DirectoryFilterChange } from "@/components/admin/DirectoryFilter";
 import {
-  buildDirectorySubTypeOptions,
-  DIRECTORY_ENTITY_TYPES,
-  DIRECTORY_PRIMARY_FILTERS,
   DIRECTORY_SUBTYPE_ALL,
   filterDirectoryList,
-  getDefaultEntityForPrimary,
   type DirectoryEntityType,
   type DirectoryPrimaryFilter,
 } from "@/types/adminDirectoryFilters";
@@ -64,43 +61,6 @@ function formatDirectoryCategory(business: BusinessRecord, labels: Translations)
 }
 
 type AdminTab = "businesses" | "events";
-
-const directoryPrimarySelectClassName =
-  "w-full appearance-none rounded-3xl border border-[#222222]/10 bg-white/90 px-5 py-3.5 font-sans text-sm font-medium text-[#222222] shadow-soft-airy backdrop-blur-md outline-none dark:border-white/10 dark:bg-black/90 dark:text-white";
-
-const directoryPillScrollClassName =
-  "flex w-full items-center gap-2 overflow-x-auto py-2 hide-scrollbar";
-
-const directoryPillActiveClassName =
-  "bg-black text-white dark:bg-white dark:text-black";
-
-const directoryPillInactiveClassName =
-  "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-700";
-
-const directoryPillClassName =
-  "cursor-pointer whitespace-nowrap rounded-full px-4 py-1.5 font-sans text-sm font-medium transition-colors";
-
-function getDirectorySubTypeLabel(
-  value: string,
-  primary: DirectoryPrimaryFilter,
-  labels: Translations,
-): string {
-  if (value === DIRECTORY_SUBTYPE_ALL) return labels.filterAll;
-  if (primary === "Events") return getEventSubTypeLabel(value, labels);
-  return getActivityLabel(value, labels);
-}
-
-function getDirectoryEntityLabel(entity: DirectoryEntityType, labels: Translations): string {
-  if (entity === "Store") return labels.directoryEntityStores;
-  if (entity === "Activity") return labels.directoryEntityActivities;
-  return labels.directoryEntityEvents;
-}
-
-function getDirectoryPrimaryLabel(primary: DirectoryPrimaryFilter, labels: Translations): string {
-  if (primary === "Food") return labels.food;
-  if (primary === "Services") return labels.catalogServices;
-  return labels.events;
-}
 
 interface ActivityCheckboxProps {
   id: string;
@@ -244,7 +204,6 @@ export function AccountDashboard({
   onEventsChanged,
   onDirectoryRefresh,
 }: AccountDashboardProps) {
-  const primaryFilterId = useId();
   const logoInputId = useId();
   const otherActivityInputId = useId();
   const hasPhysicalLocationId = useId();
@@ -286,11 +245,6 @@ export function AccountDashboard({
     void onDirectoryRefresh?.();
   }, [onDirectoryRefresh]);
 
-  const subTypeOptions = useMemo(
-    () => buildDirectorySubTypeOptions(primaryFilter, businesses),
-    [primaryFilter, businesses],
-  );
-
   const filteredDirectoryItems = useMemo(
     () =>
       filterDirectoryList(
@@ -304,22 +258,15 @@ export function AccountDashboard({
     [businesses, events, primaryFilter, entityType, subType, directorySearch],
   );
 
-  const handlePrimaryFilterChange = (value: DirectoryPrimaryFilter) => {
-    setPrimaryFilter(value);
-    setEntityType(getDefaultEntityForPrimary(value));
-    setSubType(DIRECTORY_SUBTYPE_ALL);
+  const handleFilterChange = ({
+    mainCategory,
+    subCategory,
+    entityType: nextEntity,
+  }: DirectoryFilterChange) => {
+    setPrimaryFilter(mainCategory);
+    setSubType(subCategory);
+    setEntityType(nextEntity);
   };
-
-  const handleEntityTypeChange = (value: DirectoryEntityType) => {
-    setEntityType(value);
-    setSubType(DIRECTORY_SUBTYPE_ALL);
-  };
-
-  useEffect(() => {
-    if (!subTypeOptions.includes(subType)) {
-      setSubType(DIRECTORY_SUBTYPE_ALL);
-    }
-  }, [subType, subTypeOptions]);
 
   const handleLogoInputChange = (event: ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -597,80 +544,15 @@ export function AccountDashboard({
           />
         </div>
 
-        <div className="mt-5 flex flex-col gap-3">
-          <label className="block" htmlFor={primaryFilterId}>
-            <span className={fieldLabelClassName}>{labels.directoryPrimaryFilter}</span>
-            <div className="relative mt-2">
-              <select
-                id={primaryFilterId}
-                value={primaryFilter}
-                onChange={(event) =>
-                  handlePrimaryFilterChange(event.target.value as DirectoryPrimaryFilter)
-                }
-                className={directoryPrimarySelectClassName}
-              >
-                {DIRECTORY_PRIMARY_FILTERS.map((option) => (
-                  <option key={option} value={option}>
-                    {getDirectoryPrimaryLabel(option, labels)}
-                  </option>
-                ))}
-              </select>
-              <ChevronDown
-                size={16}
-                strokeWidth={1.75}
-                aria-hidden
-                className="pointer-events-none absolute inset-e-4 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
-              />
-            </div>
-          </label>
-
-          <div
-            role="tablist"
-            aria-label={labels.directoryEntityFilter}
-            className={directoryPillScrollClassName}
-          >
-            {DIRECTORY_ENTITY_TYPES.map((option) => {
-              const isActive = entityType === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => handleEntityTypeChange(option)}
-                  className={`${directoryPillClassName} ${
-                    isActive ? directoryPillActiveClassName : directoryPillInactiveClassName
-                  }`}
-                >
-                  {getDirectoryEntityLabel(option, labels)}
-                </button>
-              );
-            })}
-          </div>
-
-          <div
-            role="tablist"
-            aria-label={labels.directoryTypeFilter}
-            className={directoryPillScrollClassName}
-          >
-            {subTypeOptions.map((option) => {
-              const isActive = subType === option;
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  role="tab"
-                  aria-selected={isActive}
-                  onClick={() => setSubType(option)}
-                  className={`${directoryPillClassName} ${
-                    isActive ? directoryPillActiveClassName : directoryPillInactiveClassName
-                  }`}
-                >
-                  {getDirectorySubTypeLabel(option, primaryFilter, labels)}
-                </button>
-              );
-            })}
-          </div>
+        <div className="mt-5">
+          <DirectoryFilter
+            businesses={businesses}
+            labels={labels}
+            mainCategory={primaryFilter}
+            entityType={entityType}
+            subCategory={subType}
+            onFilterChange={handleFilterChange}
+          />
         </div>
 
         <div className="mt-4 max-h-72 overflow-y-auto rounded-[32px] bg-white [-ms-overflow-style:none] scrollbar-none dark:border dark:border-white/10 dark:bg-black [&::-webkit-scrollbar]:hidden">
