@@ -5,13 +5,12 @@ import {
   SERVICES_ACTIVITIES,
   businessMatchesCatalogCategory,
   eventMatchesSubType,
-  resolveBusinessMainCategory,
   type MainCategory,
 } from "@/types/businessCategories";
 import type { EventRecord } from "@/types/event";
 
 export type DirectoryPrimaryFilter = "Food" | "Services" | "Events";
-export type DirectoryEntityType = "Store" | "Service" | "Event";
+export type DirectoryEntityType = "Store" | "Activity" | "Event";
 
 export const DIRECTORY_SUBTYPE_ALL = "All";
 
@@ -23,7 +22,7 @@ export const DIRECTORY_PRIMARY_FILTERS: DirectoryPrimaryFilter[] = [
 
 export const DIRECTORY_ENTITY_TYPES: DirectoryEntityType[] = [
   "Store",
-  "Service",
+  "Activity",
   "Event",
 ];
 
@@ -31,18 +30,7 @@ export function getDefaultEntityForPrimary(
   primary: DirectoryPrimaryFilter,
 ): DirectoryEntityType {
   if (primary === "Events") return "Event";
-  if (primary === "Services") return "Service";
   return "Store";
-}
-
-function isValidPrimaryEntityPair(
-  primary: DirectoryPrimaryFilter,
-  entity: DirectoryEntityType,
-): boolean {
-  if (entity === "Event") return primary === "Events";
-  if (entity === "Store") return primary === "Food";
-  if (entity === "Service") return primary === "Services";
-  return false;
 }
 
 function collectCustomActivities(
@@ -54,7 +42,7 @@ function collectCustomActivities(
   const custom = new Set<string>();
 
   for (const business of businesses) {
-    if (resolveBusinessMainCategory(business) !== category) continue;
+    if (!businessMatchesCatalogCategory(business, category)) continue;
 
     for (const activity of business.activities ?? []) {
       const trimmed = activity.trim();
@@ -70,18 +58,13 @@ function collectCustomActivities(
 
 export function buildDirectorySubTypeOptions(
   primary: DirectoryPrimaryFilter,
-  entity: DirectoryEntityType,
   businesses: BusinessRecord[],
 ): string[] {
-  if (!isValidPrimaryEntityPair(primary, entity)) {
-    return [DIRECTORY_SUBTYPE_ALL];
-  }
-
-  if (entity === "Event") {
+  if (primary === "Events") {
     return [DIRECTORY_SUBTYPE_ALL, ...EVENT_SUB_TYPES];
   }
 
-  if (entity === "Store") {
+  if (primary === "Food") {
     const custom = collectCustomActivities(businesses, "Food", FOOD_ACTIVITIES);
     return [DIRECTORY_SUBTYPE_ALL, ...FOOD_ACTIVITIES, ...custom];
   }
@@ -92,6 +75,7 @@ export function buildDirectorySubTypeOptions(
 
 export type DirectoryListItem =
   | { kind: "store"; business: BusinessRecord }
+  | { kind: "activity"; name: string }
   | { kind: "event"; event: EventRecord };
 
 function businessMatchesSubType(business: BusinessRecord, subType: string): boolean {
@@ -101,6 +85,31 @@ function businessMatchesSubType(business: BusinessRecord, subType: string): bool
   return (business.activities ?? []).some(
     (activity) => activity.trim().toLowerCase() === normalized,
   );
+}
+
+function collectActivityNames(
+  businesses: BusinessRecord[],
+  category: MainCategory,
+  subType: string,
+): string[] {
+  const names = new Set<string>();
+
+  for (const business of businesses) {
+    if (!businessMatchesCatalogCategory(business, category)) continue;
+
+    for (const activity of business.activities ?? []) {
+      const trimmed = activity.trim();
+      if (!trimmed) continue;
+
+      if (subType !== DIRECTORY_SUBTYPE_ALL) {
+        if (trimmed.toLowerCase() !== subType.trim().toLowerCase()) continue;
+      }
+
+      names.add(trimmed);
+    }
+  }
+
+  return [...names].sort((a, b) => a.localeCompare(b));
 }
 
 function matchesSearchQuery(
@@ -122,6 +131,10 @@ function matchesSearchQuery(
     );
   }
 
+  if (item.kind === "activity") {
+    return item.name.toLowerCase().includes(query);
+  }
+
   const event = item.event;
   const eventType = event.event_type?.toLowerCase() ?? "";
 
@@ -140,22 +153,29 @@ export function filterDirectoryList(
   subType: string,
   searchQuery: string,
 ): DirectoryListItem[] {
-  if (!isValidPrimaryEntityPair(primary, entity)) {
-    return [];
-  }
-
   const query = searchQuery.trim().toLowerCase();
   const items: DirectoryListItem[] = [];
 
   if (entity === "Event") {
+    if (primary !== "Events") return [];
+
     for (const event of events) {
       if (subType !== DIRECTORY_SUBTYPE_ALL && !eventMatchesSubType(event, subType)) {
         continue;
       }
       items.push({ kind: "event", event });
     }
+  } else if (entity === "Activity") {
+    if (primary === "Events") return [];
+
+    const category: MainCategory = primary === "Food" ? "Food" : "Services";
+    for (const name of collectActivityNames(businesses, category, subType)) {
+      items.push({ kind: "activity", name });
+    }
   } else {
-    const category: MainCategory = entity === "Store" ? "Food" : "Services";
+    if (primary === "Events") return [];
+
+    const category: MainCategory = primary === "Food" ? "Food" : "Services";
 
     for (const business of businesses) {
       if (!businessMatchesCatalogCategory(business, category)) continue;

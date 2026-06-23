@@ -68,8 +68,17 @@ type AdminTab = "businesses" | "events";
 const directoryPrimarySelectClassName =
   "w-full appearance-none rounded-3xl border border-[#222222]/10 bg-white/90 px-5 py-3.5 font-sans text-sm font-medium text-[#222222] shadow-soft-airy backdrop-blur-md outline-none dark:border-white/10 dark:bg-black/90 dark:text-white";
 
-const directorySecondarySelectClassName =
-  "w-full appearance-none rounded-3xl border border-[#222222]/10 bg-white/90 px-4 py-3 font-sans text-xs font-medium uppercase tracking-wide text-[#222222] shadow-soft-airy backdrop-blur-md outline-none dark:border-white/10 dark:bg-black/90 dark:text-white";
+const directoryPillScrollClassName =
+  "flex w-full items-center gap-2 overflow-x-auto py-2 hide-scrollbar";
+
+const directoryPillActiveClassName =
+  "bg-black text-white dark:bg-white dark:text-black";
+
+const directoryPillInactiveClassName =
+  "bg-gray-100 text-gray-600 hover:bg-gray-200 dark:bg-neutral-800 dark:text-gray-400 dark:hover:bg-neutral-700";
+
+const directoryPillClassName =
+  "cursor-pointer whitespace-nowrap rounded-full px-4 py-1.5 font-sans text-sm font-medium transition-colors";
 
 function getDirectorySubTypeLabel(
   value: string,
@@ -82,9 +91,9 @@ function getDirectorySubTypeLabel(
 }
 
 function getDirectoryEntityLabel(entity: DirectoryEntityType, labels: Translations): string {
-  if (entity === "Store") return labels.entityStore;
-  if (entity === "Service") return labels.entityService;
-  return labels.entityEvent;
+  if (entity === "Store") return labels.directoryEntityStores;
+  if (entity === "Activity") return labels.directoryEntityActivities;
+  return labels.directoryEntityEvents;
 }
 
 function getDirectoryPrimaryLabel(primary: DirectoryPrimaryFilter, labels: Translations): string {
@@ -236,8 +245,6 @@ export function AccountDashboard({
   onDirectoryRefresh,
 }: AccountDashboardProps) {
   const primaryFilterId = useId();
-  const entityFilterId = useId();
-  const subTypeFilterId = useId();
   const logoInputId = useId();
   const otherActivityInputId = useId();
   const hasPhysicalLocationId = useId();
@@ -280,8 +287,8 @@ export function AccountDashboard({
   }, [onDirectoryRefresh]);
 
   const subTypeOptions = useMemo(
-    () => buildDirectorySubTypeOptions(primaryFilter, entityType, businesses),
-    [primaryFilter, entityType, businesses],
+    () => buildDirectorySubTypeOptions(primaryFilter, businesses),
+    [primaryFilter, businesses],
   );
 
   const filteredDirectoryItems = useMemo(
@@ -617,56 +624,52 @@ export function AccountDashboard({
             </div>
           </label>
 
-          <div className="grid grid-cols-2 gap-3">
-            <label className="block" htmlFor={entityFilterId}>
-              <span className={fieldLabelClassName}>{labels.directoryEntityFilter}</span>
-              <div className="relative mt-2">
-                <select
-                  id={entityFilterId}
-                  value={entityType}
-                  onChange={(event) =>
-                    handleEntityTypeChange(event.target.value as DirectoryEntityType)
-                  }
-                  className={directorySecondarySelectClassName}
+          <div
+            role="tablist"
+            aria-label={labels.directoryEntityFilter}
+            className={directoryPillScrollClassName}
+          >
+            {DIRECTORY_ENTITY_TYPES.map((option) => {
+              const isActive = entityType === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => handleEntityTypeChange(option)}
+                  className={`${directoryPillClassName} ${
+                    isActive ? directoryPillActiveClassName : directoryPillInactiveClassName
+                  }`}
                 >
-                  {DIRECTORY_ENTITY_TYPES.map((option) => (
-                    <option key={option} value={option}>
-                      {getDirectoryEntityLabel(option, labels)}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={14}
-                  strokeWidth={1.75}
-                  aria-hidden
-                  className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
-                />
-              </div>
-            </label>
+                  {getDirectoryEntityLabel(option, labels)}
+                </button>
+              );
+            })}
+          </div>
 
-            <label className="block" htmlFor={subTypeFilterId}>
-              <span className={fieldLabelClassName}>{labels.directoryTypeFilter}</span>
-              <div className="relative mt-2">
-                <select
-                  id={subTypeFilterId}
-                  value={subType}
-                  onChange={(event) => setSubType(event.target.value)}
-                  className={directorySecondarySelectClassName}
+          <div
+            role="tablist"
+            aria-label={labels.directoryTypeFilter}
+            className={directoryPillScrollClassName}
+          >
+            {subTypeOptions.map((option) => {
+              const isActive = subType === option;
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  role="tab"
+                  aria-selected={isActive}
+                  onClick={() => setSubType(option)}
+                  className={`${directoryPillClassName} ${
+                    isActive ? directoryPillActiveClassName : directoryPillInactiveClassName
+                  }`}
                 >
-                  {subTypeOptions.map((option) => (
-                    <option key={option} value={option}>
-                      {getDirectorySubTypeLabel(option, primaryFilter, labels)}
-                    </option>
-                  ))}
-                </select>
-                <ChevronDown
-                  size={14}
-                  strokeWidth={1.75}
-                  aria-hidden
-                  className="pointer-events-none absolute inset-e-3 top-1/2 -translate-y-1/2 text-[#222222]/40 dark:text-white/40"
-                />
-              </div>
-            </label>
+                  {getDirectorySubTypeLabel(option, primaryFilter, labels)}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -701,6 +704,31 @@ export function AccountDashboard({
                         onClick={() =>
                           openDeleteModal({ kind: "store", id: business.id, name: business.name })
                         }
+                        className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
+                      >
+                        {labels.remove}
+                      </button>
+                    </li>
+                  );
+                }
+
+                if (item.kind === "activity") {
+                  return (
+                    <li
+                      key={`activity-${item.name}`}
+                      className="flex items-center gap-3 bg-white px-4 py-3.5 dark:bg-black"
+                    >
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate font-sans text-sm font-medium text-[#222222] dark:text-white">
+                          {item.name}
+                        </p>
+                        <span className="mt-1 inline-block rounded-full bg-[#F9F9F9] px-2.5 py-0.5 text-[10px] font-medium uppercase tracking-wide text-[#222222]/60 dark:bg-white/10 dark:text-white/60">
+                          {labels.activityTag}
+                        </span>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => openDeleteModal({ kind: "activity", name: item.name })}
                         className="shrink-0 font-sans text-xs font-medium uppercase tracking-wide text-[#222222]/40 transition-colors hover:text-red-500 dark:text-white/40 dark:hover:text-red-400"
                       >
                         {labels.remove}

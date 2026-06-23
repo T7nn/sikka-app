@@ -26,7 +26,7 @@ export function BottomTabBar({ activeTab, onTabChange, tabLabels }: BottomTabBar
   return (
     <nav
       aria-label="Main navigation"
-      className="fixed bottom-0 left-0 right-0 z-50 bg-white px-5 pb-[env(safe-area-inset-bottom)] pt-3 shadow-soft-airy dark:border-t dark:border-white/10 dark:bg-black dark:shadow-none"
+      className="fixed bottom-0 left-0 right-0 z-50 bg-white px-5 pb-[calc(env(safe-area-inset-bottom)+0.75rem)] pt-3 shadow-soft-airy dark:border-t dark:border-white/10 dark:bg-black dark:shadow-none"
     >
       <ul className="mx-auto flex max-w-md items-stretch gap-2">
         {TABS.map((tab) => {

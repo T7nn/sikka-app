@@ -65,3 +65,12 @@
 .dark .maplibregl-ctrl-icon {
   filter: invert(1);
 }
+
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}

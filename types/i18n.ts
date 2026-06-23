@@ -144,6 +144,9 @@ export interface Translations {
   entityStore: string;
   entityService: string;
   entityEvent: string;
+  directoryEntityStores: string;
+  directoryEntityActivities: string;
+  directoryEntityEvents: string;
   filterAll: string;
   directoryEmpty: string;
   delete: string;
@@ -310,6 +313,9 @@ export const translations: Record<Language, Translations> = {
     entityStore: "Store",
     entityService: "Service",
     entityEvent: "Event",
+    directoryEntityStores: "Stores",
+    directoryEntityActivities: "Activities",
+    directoryEntityEvents: "Events",
     filterAll: "All",
     directoryEmpty: "No items in the directory yet.",
     delete: "Delete",
@@ -473,6 +479,9 @@ export const translations: Record<Language, Translations> = {
     entityStore: "متجر",
     entityService: "خدمة",
     entityEvent: "فعالية",
+    directoryEntityStores: "المتاجر",
+    directoryEntityActivities: "الأنشطة",
+    directoryEntityEvents: "الفعاليات",
     filterAll: "الكل",
     directoryEmpty: "لا توجد عناصر في الدليل بعد.",
     delete: "حذف",
